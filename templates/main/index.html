@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block header %}
+    <h1>{% block title %}SikumAI{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+        {% with images=library_images, books=books %}
+            {% include 'main/components/library.html' %}
+        {% endwith %}
+
+        {% include 'main/components/literature.html' %}
+
+    <form method="POST" action="{{ url_for('add_book') }}" class="d-flex align-items-start gap-3">
+        {{ render_form(book_form) }}
+    </form>
+
+{% endblock %}

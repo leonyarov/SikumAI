@@ -1,0 +1,40 @@
+
+<h2>
+    Literature Overview
+</h2>
+
+
+<div class="bg-body-secondary rounded p-5 my-2 d-flex" style="height:300px">
+{#<img src="book.jps"/>#}
+<img class="rounded " src="/static/book.jpg"/>
+    <vh class="vr mx-5"></vh>
+    <div class="d-flex">
+            <dl class="book">
+                <dt>Author:</dt>
+                <dd>{{ session['book'].author }}</dd>
+                <dt>Title:</dt>
+                <dd>{{ session['book'].title }}</dd>
+                <dt>Pages:</dt>
+                <dd>{{ session['book'].pages }}</dd>
+                <dt>Abstract:</dt>
+                <dd>{{ session['book'].short_text }}</dd>
+                <dt>MSDN:</dt>
+                <dd>{{ session['book'].msdn }}</dd>
+            </dl>
+    </div>
+</div>
+
+<style>
+    dt{
+        display:inline;
+    }
+    dd{
+        display:inline;
+    }
+
+     dd::after {
+        content: "\A";
+        white-space: pre;
+
+    }
+</style>

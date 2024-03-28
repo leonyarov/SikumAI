@@ -1,0 +1,40 @@
+<h2>
+    Library
+</h2>
+
+<div class="bg-body-secondary rounded-top p-2 shadow my-2">
+    <button class="btn btn-primary">Romans</button>
+    <button class="btn btn-primary">Stories</button>
+</div>
+
+<div class="bg-body-secondary rounded-bottom d-flex p-3 my-2 gap-2">
+    {% for x in books %}
+    <div class="cover rounded"
+        data-bs-trigger="hover focus"  data-toggle="popover" title={{ x.title }} data-bs-placement="top" data-content="And here's some amazing content. It's very engaging. Right?">
+        <img class="rounded book-image" width="100" src={{ images }} data-book-id={{ x.id }}  alt={{ x.title }}>
+    </div>
+    {% endfor %}
+</div>
+
+
+
+
+<style>
+.cover{
+    width: 100px;
+    height: 200px;
+}
+
+.cover :hover{
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    transition: 0.1s;
+    cursor:pointer;
+
+}
+</style>
+
+
+<script>
+
+</script>
