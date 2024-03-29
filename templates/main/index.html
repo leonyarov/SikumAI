@@ -11,8 +11,11 @@
         {% endwith %}
 
         {% include 'main/components/literature.html' %}
+        {% include 'main/components/chapters.html' %}
+        {% include 'main/components/generate.html' %}
 
-    <form method="POST" action="{{ url_for('add_book') }}" class="d-flex align-items-start gap-3">
+
+    <form  method="POST" action="{{ url_for('add_book') }}" class="d-flex align-items-start gap-3 mt-5">
         {{ render_form(book_form) }}
     </form>
 
