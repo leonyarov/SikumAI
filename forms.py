@@ -12,4 +12,5 @@ class BookForm(FlaskForm):
     pages = IntegerField('Pages', validators=[DataRequired()])
     short_text = StringField('Short Text')
     msdn = StringField('MSDN')
+    image = StringField('Image')
     submit = SubmitField('Submit')

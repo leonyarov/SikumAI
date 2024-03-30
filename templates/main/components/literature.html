@@ -6,7 +6,7 @@
 
 <div class="bg-body-secondary rounded p-5 my-2 d-flex" style="height:300px">
 {#<img src="book.jps"/>#}
-<img class="rounded " src="/static/book.jpg"/>
+<img class="rounded " src={{ url_for("static",filename=session['book'].image) }}/>
     <vh class="vr mx-5"></vh>
     <div class="d-flex">
             <dl class="book">

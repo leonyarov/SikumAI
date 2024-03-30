@@ -11,7 +11,7 @@
     {% for x in books %}
     <div class="cover rounded"
         data-bs-trigger="hover focus"  data-toggle="popover" title={{ x.title }} data-bs-placement="top" data-content="And here's some amazing content. It's very engaging. Right?">
-        <img class="rounded book-image" width="100" src={{ images }} data-book-id={{ x.id }}  alt={{ x.title }}>
+        <img class="rounded book-image" width="100" src="{{ url_for('static', filename=x.image) }}" data-book-id={{ x.id }}  alt={{ x.title }}>
     </div>
     {% endfor %}
 </div>

@@ -4,6 +4,7 @@ from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import CSRFProtect
 from forms import BookForm
 from database import db, Book
+import pdfplumber
 
 app = Flask(__name__, static_url_path="/static")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -18,8 +19,10 @@ bootstrap = Bootstrap5(app)
 app.config['SECRET_KEY'] = 'SECRET!'
 csrf = CSRFProtect(app)
 
+google_api_key = "AIzaSyD9iKE1Jnsx41e7yc_eDyfX4zB0zy9ZNXA"
 
-@app.route('/', methods=['GET', 'POST'])
+
+@app.route('/', methods=['GET'])
 def main_page():  # put application's code here
     get_flashed_messages()
     library_images = url_for('static', filename='book.jpg')
@@ -27,12 +30,38 @@ def main_page():  # put application's code here
     book_form = BookForm()
     if not session.get('book'):
         session['book'] = None
+    if not session.get('chapter'):
+        session['chapter'] = None
+    if not session.get('page'):
+        session['page'] = 0
+
     return render_template('main/index.html', book_form=book_form, library_images=library_images, books=books)
 
 
 @app.route('/prompt', methods=['POST'])
 def prompt():
-    return render_template('main/index.html')
+    flash("You have been prompted", 'info')
+    return redirect('/')
+
+
+@app.route('/change_chapter', methods=['POST'])
+@csrf.exempt
+def change_chapter():
+    chapter_num = request.form.get('page', "1")
+
+    if chapter_num == "next":
+        session['page'] = int(session['page']) + 1
+    elif chapter_num == "prev":
+        session['page'] = min(int(session['page']) - 1, 0)
+    else:
+        session['page'] = int(chapter_num)
+
+    print("Page selected: ", session['page'])
+    with pdfplumber.open("static/books/master_margarita.pdf") as pdf:
+        first_page = pdf.pages[session['page']]
+        session['chapter'] = first_page.extract_text()
+
+    return redirect('/')
 
 
 @app.route('/set_book', methods=['POST'])
@@ -54,7 +83,8 @@ def add_book():
             title=form.title.data,
             pages=form.pages.data,
             short_text=form.short_text.data,
-            msdn=form.msdn.data
+            msdn=form.msdn.data,
+            image=form.image.data
         )
         try:
             db.session.add(new_book)

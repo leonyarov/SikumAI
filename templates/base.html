@@ -15,6 +15,14 @@
     {% endblock %}
 </head>
 <body>
+<div class="float-end sticky-top mt-2 me-5">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+</div>
 <!-- Your page content -->
 <main class="container">
     {% block header %}{% endblock %}
@@ -43,7 +51,7 @@
                     type: 'post',
                     data: {'book': bookId},
                     success: function (response) {
-                       location.reload()
+                        location.reload()
                     },
                     error: function (error) {
                         console.log(error)
@@ -52,16 +60,28 @@
             });
         });
     </script>
+
+    <script>
+        $('.page-link').click(function (e) {
+            e.preventDefault();
+            var page = $(this).data('page');
+           
+             $.ajax({
+                    url: '/change_chapter',
+                    type: 'post',
+                    data: {'page': page},
+                    success: function (response) {
+                        location.reload()
+                    },
+                    error: function (error) {
+                        console.log(error)
+                    }
+                });
+
+        });
+    </script>
 {% endblock %}
 
-<div class="container">
-
-    {% for category, message in get_flashed_messages(with_categories=true) %}
-        <div class="alert alert-{{ category }}" role="alert">
-            {{ message }}
-        </div>
-    {% endfor %}
-</div>
 
 </body>
 
