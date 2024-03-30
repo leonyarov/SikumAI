@@ -4,8 +4,7 @@ from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import CSRFProtect
 from forms import BookForm
 from database import db, Book
-import pdfplumber
-
+from functions.book import *
 app = Flask(__name__, static_url_path="/static")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -56,10 +55,9 @@ def change_chapter():
     else:
         session['page'] = int(chapter_num)
 
+    session['chapter'] = get_book_chapter(session['page'])
+
     print("Page selected: ", session['page'])
-    with pdfplumber.open("static/books/master_margarita.pdf") as pdf:
-        first_page = pdf.pages[session['page']]
-        session['chapter'] = first_page.extract_text()
 
     return redirect('/')
 
