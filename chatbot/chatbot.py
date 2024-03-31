@@ -8,84 +8,79 @@ import pdfplumber
 load_dotenv()
 
 def get_book_chapter(book_name, chapter: int):
-    # Construct the path to the PDF file dynamically based on the book name
     pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
     with pdfplumber.open(pdf_path) as pdf:
-        first_page = pdf.pages[chapter - 1]  # Adjusted to 0-based index
+        first_page = pdf.pages[chapter - 1]
         return first_page.extract_text()
 
 def build_prompt(book_name, chapter_name, page_number, page_content, next_page_content, previous_summaries):
-    # Build a prompt for the chatbot using the page content, chapter name, and previous summaries
     previous_summary_text = "\n\n".join(previous_summaries)
-    prompt = f"Summary of {book_name}, Chapter '{chapter_name}', Page {page_number}:\n\n{page_content}\n\nContinued on next page:\n{next_page_content}\n\nPrevious summaries:\n{previous_summary_text}\n\nPlease generate a summary for this page."
+    prompt = (f"Summary of {book_name}, Chapter '{chapter_name}', Page {page_number}:\n\n{page_content}\n\n"
+              f"Continued on next page:\n{next_page_content}\n\nPrevious summaries:\n{previous_summary_text}\n\n"
+              "Please generate a detailed summary for this page, focusing on key plot points, "
+              "character developments, and story-driven actions. Include any significant decisions made by characters, "
+              "conflicts, emotional moments, and elements of foreshadowing or symbolism.")
+    return prompt
+
+def build_qa_prompt(book_name, chapter_name, detailed_summary):
+    prompt = (f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', "
+              "generate a set of educational questions and their corresponding answers. Focus on character motivations, "
+              "plot implications, thematic elements, and any significant narrative techniques used in this chapter.\n\n"
+              f"Detailed Summary:\n{detailed_summary}\n")
     return prompt
 
 def generate_summary(prompt):
-    # Access the environment variables
     google_api_key = os.getenv('GOOGLE_API_KEY')
-    
-    # Define the URL
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-    
-    # Define the request payload
-    payload = {
-        "contents": [{
-            "parts": [{
-                "text": prompt
-            }]
-        }]
-    }
-    
-    # Set the headers
-    headers = {
-        "Content-Type": "application/json",
-    }
-    
-    # Add API key to parameters
-    params = {
-        "key": google_api_key
-    }
-    
-    # Make the POST request
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    headers = {"Content-Type": "application/json"}
+    params = {"key": google_api_key}
     response = requests.post(url, headers=headers, params=params, json=payload)
-    
-    # Check the response status
     if response.status_code == 200:
-        # Extract and return the summary from the response
         summary = response.json()['candidates'][0]['content']['parts'][0]['text']
         return summary
     else:
-        # Return the error
         return {"error": response.text}
 
-def generate_chapter_summaries(book_name, book_chapters, chapter_names):
+def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):
     chapter_summaries = []
-    previous_summaries = []  # Store previous summaries
+    previous_summaries = []
+    questions_and_answers = []
+    
     for i, chapter_number in enumerate(book_chapters):
         chapter_content = get_book_chapter(book_name, chapter_number)
-        next_chapter_number = book_chapters[i + 1] if i < len(book_chapters) - 1 else None
-        next_chapter_content = get_book_chapter(book_name, next_chapter_number) if next_chapter_number else ""
-        prompt = build_prompt(book_name, chapter_names[i], chapter_number, chapter_content, next_chapter_content, previous_summaries)
-        summary = generate_summary(prompt)
-        chapter_summaries.append(summary)
-        previous_summaries.append(summary)  # Add the current summary to the list of previous summaries
-    
-    # Construct output file name
-    output_file_name = f"{book_name}_page{'_'.join(map(str, book_chapters))}_summaries.txt"
-    output_file_path = os.path.join("chatbot", "output", output_file_name)
+        next_chapter_content = get_book_chapter(book_name, book_chapters[i + 1]) if i < len(book_chapters) - 1 else ""
+        detailed_summary_prompt = build_prompt(book_name, chapter_names[i], chapter_number, chapter_content, next_chapter_content, previous_summaries)
+        detailed_summary = generate_summary(detailed_summary_prompt)
+        chapter_summaries.append(detailed_summary)
+        previous_summaries.append(detailed_summary)
+        
+        qa_prompt = build_qa_prompt(book_name, chapter_names[i], detailed_summary)
+        qa_content = generate_summary(qa_prompt)
+        questions_and_answers.append(qa_content)
     
     # Write summaries to the output file
-    with open(output_file_path, "w") as output_file:
+    summary_file_name = f"{book_name}_summaries.txt"
+    summary_file_path = os.path.join("chatbot", "output", summary_file_name)
+    with open(summary_file_path, "w") as summary_file:
         for i, summary in enumerate(chapter_summaries):
-            output_file.write(f"Summary of Chapter {book_chapters[i]} - {chapter_names[i]}:\n")
-            output_file.write(summary + "\n\n")
+            summary_file.write(f"Summary of Chapter {book_chapters[i]} - {chapter_names[i]}:\n{summary}\n\n")
     
-    return output_file_path
+    # Write Q&A to the output file
+    qa_file_name = f"{book_name}_QA.txt"
+    qa_file_path = os.path.join("chatbot", "output", qa_file_name)
+    with open(qa_file_path, "w") as qa_file:
+        for i, qa in enumerate(questions_and_answers):
+            qa_file.write(f"Q&A for Chapter {book_chapters[i]} - {chapter_names[i]}:\n{qa}\n\n")
+    
+    return summary_file_path, qa_file_path
 
-# Example usage
-book_name = "master_margarita"  # Example book name
-book_chapters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  
+# Adjust the example usage accordingly
+book_name = "master_margarita"
+book_chapters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 chapter_names = ["Never Talk to Strangers", "Pontius Pilate", "The Seventh Proof", "The Pursuit", "The Affair at Griboyedov",
-                 "Schizophrenia", "The Haunted Flat", "A Duel between Professor and Poet", "Koroviev's Tricks", "News from Yalta"]  # Assuming you have chapter names in a list
-output_file_path = generate_chapter_summaries(book_name, book_chapters, chapter_names)
-print("Summaries saved to:", output_file_path)
+                 "Schizophrenia", "The Haunted Flat", "A Duel between Professor and Poet", "Koroviev's Tricks", "News from Yalta"]
+summary_file_path, qa_file_path = generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names)
+print("Summaries saved to:", summary_file_path)
+print("Q&A saved to:", qa_file_path)
+
