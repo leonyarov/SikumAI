@@ -5,6 +5,7 @@ from flask_wtf.csrf import CSRFProtect
 from forms import BookForm
 from database import db, Book
 from functions.book import *
+
 app = Flask(__name__, static_url_path="/static")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -33,13 +34,41 @@ def main_page():  # put application's code here
         session['chapter'] = None
     if not session.get('page'):
         session['page'] = 0
+    if not session.get('prompt'):
+        session['prompt'] = None
 
     return render_template('main/index.html', book_form=book_form, library_images=library_images, books=books)
 
 
 @app.route('/prompt', methods=['POST'])
 def prompt():
-    flash("You have been prompted", 'info')
+    import re
+    gen_type = request.form.get('type', "3")
+    print("gen type",gen_type)
+    file = ""
+    if gen_type == "1":
+        file = "chatbot/output/master_margarita_QA.txt"
+    elif gen_type == "3":
+        file = "chatbot/output/master_margarita_summaries.txt"
+    else:
+        file = "chatbot/output/master_margarita_summaries.txt"
+
+    with open(file, "r", encoding='utf-8') as f:
+        text = f.read()
+
+        text = text.replace('\r', '')
+        text = text.replace('\n\n\n', '\n')
+        text = text.replace('\n\n', '\n')
+
+        print("text length:",len(text), ".bytes length", len(text.encode('ascii')))
+
+        if len(text) > 4090:
+            # cookie can contain only 4096 bytes
+            session['prompt'] = text[:3000]
+        else:
+            session['prompt'] = text
+
+    flash("Prompt generated", "success")
     return redirect('/')
 
 

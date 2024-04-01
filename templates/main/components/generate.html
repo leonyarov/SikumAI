@@ -1,5 +1,5 @@
 <form action="{{ url_for("prompt") }}" method="POST">
-     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="row mt-5">
 
         <div class="col-5">
@@ -18,9 +18,11 @@
                     I want:
                 </div>
                 <div class="col-auto">
-                    <select class="form-select" aria-label="Select prompt output type">
+                    <select name="type" class="form-select" aria-label="Select prompt output type">
                         <option value="1" selected>Questions & Answers</option>
                         <option value="2">Lesson Plan</option>
+                        <option value="3">Chapters</option>
+
                     </select>
                 </div>
             </div>
@@ -30,10 +32,23 @@
         <div class="col-auto d-flex">
             <button class="btn btn-primary">Generate</button>
         </div>
+
+        <div class="col-auto d-flex align-items-end  gap-3">
+            <span >Powered By</span>
+            <img width="100px" src="{{ url_for('static', filename="gemini.png") }}"/>
+        </div>
     </div>
 </form>
 
 
-<div class="bg-body-secondary mt-5 rounded p-2 vh-100">
-
+<div class="bg-body-secondary mt-5 rounded p-5 " style="min-height:100vh;">
+    <p class="prompt">
+        {{ session.get("prompt") }}
+    </p>
 </div>
+
+<style>
+    p.prompt{
+        white-space: pre-wrap;
+    }
+</style>
