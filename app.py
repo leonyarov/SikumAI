@@ -1,12 +1,11 @@
 from flask import Flask, flash, request, url_for, redirect, get_flashed_messages, session, jsonify
 from flask import render_template
-from flask_bootstrap import Bootstrap5
-from flask_wtf.csrf import CSRFProtect
 from forms import BookForm
 from database import db, Book
 from functions.book import *
-
+from flask_cors import CORS, cross_origin
 app = Flask(__name__, static_url_path="/static")
+cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
@@ -15,9 +14,9 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-bootstrap = Bootstrap5(app)
+
+
 app.config['SECRET_KEY'] = 'SECRET!'
-csrf = CSRFProtect(app)
 
 google_api_key = "AIzaSyD9iKE1Jnsx41e7yc_eDyfX4zB0zy9ZNXA"
 
@@ -39,6 +38,13 @@ def main_page():  # put application's code here
 
     return render_template('main/index.html', book_form=book_form, library_images=library_images, books=books)
 
+@app.route('/books')
+@cross_origin()
+def books():
+    b = Book.query.all()
+    # print(b)
+    # return b
+    return jsonify(b)
 
 @app.route('/prompt', methods=['POST'])
 def prompt():
@@ -69,30 +75,19 @@ def prompt():
             session['prompt'] = text
 
     flash("Prompt generated", "success")
-    return redirect('/')
+    return jsonify(text)
 
 
-@app.route('/change_chapter', methods=['POST'])
-@csrf.exempt
+@app.route('/get_page', methods=['POST'])
 def change_chapter():
-    chapter_num = request.form.get('page', "1")
-
-    if chapter_num == "next":
-        session['page'] = int(session['page']) + 1
-    elif chapter_num == "prev":
-        session['page'] = min(int(session['page']) - 1, 0)
-    else:
-        session['page'] = int(chapter_num)
-
-    session['chapter'] = get_book_chapter(session['page'])
-
-    print("Page selected: ", session['page'])
-
-    return redirect('/')
+    data = request.get_json()
+    page = data['page']
+    book = data['book']
+    text = get_book_chapter(page)
+    return jsonify(text)
 
 
 @app.route('/set_book', methods=['POST'])
-@csrf.exempt
 def set_book():
     book_id = request.form['book']
     book = Book.query.filter_by(id=book_id).first()

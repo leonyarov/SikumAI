@@ -1,11 +1,21 @@
 from flask import Flask
 import uuid
 from flask_sqlalchemy import SQLAlchemy
+from dataclasses import dataclass
 
 db = SQLAlchemy()
 
 
+@dataclass
 class Book(db.Model):
+    id: str
+    author: str
+    title: str
+    pages: int
+    short_text: str
+    msdn: str
+    image: str
+
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     author = db.Column(db.String(100), nullable=False)
     title = db.Column(db.String(100), nullable=False)
@@ -13,7 +23,6 @@ class Book(db.Model):
     short_text = db.Column(db.String(500), nullable=True)
     msdn = db.Column(db.String(100), nullable=True)
     image = db.Column(db.String(100), nullable=True)
-
 
     def to_dict(self):
         return {
@@ -25,6 +34,7 @@ class Book(db.Model):
             'msdn': self.msdn,
             'image': self.image
         }
+
     def __init__(self, author, title, pages, short_text=None, msdn=None, image="book.jpg"):
         self.author = author
         self.title = title
@@ -33,6 +43,5 @@ class Book(db.Model):
         self.msdn = msdn
         self.image = image
 
-    def __repr__(self):
-        return f'<Book {self.title} by {self.author}>'
-
+    # def __repr__(self):
+    #     return {c.name: getattr(self, c.name) for c in self.__table__.columns}

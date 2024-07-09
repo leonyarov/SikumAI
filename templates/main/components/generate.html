@@ -1,4 +1,4 @@
-<form action="{{ url_for("prompt") }}" method="POST">
+<form id="prompt_form" action="{{ url_for("prompt") }}" method="POST" >
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="row mt-5">
 
@@ -52,3 +52,17 @@
         white-space: pre-wrap;
     }
 </style>
+
+<script>
+    $('#prompt_form').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url: url_for("prompt"),
+        type: 'post',
+        data:$('#prompt_form').serialize(),
+        success:function(){
+            // Whatever you want to do after the form is successfully submitted
+        }
+    });
+});
+</script>
