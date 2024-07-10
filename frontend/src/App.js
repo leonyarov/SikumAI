@@ -23,8 +23,9 @@ function App() {
     const [books, setBooks] = useState([])
     const [bookText, setBookText] = useState('')
     const [bookPage, setBookPage] = useState(1)
-    const [pages, setPages] = useState(1)
-    const [requiredContent, setRequiredContent] = useState('')
+    const [pages, setPages] = useState("1")
+    const [requiredContent, setRequiredContent] = useState('qa')
+    const [promptResponse, setPromptResponse] = useState("")
 
     useEffect(() => {
         axios.get('http://127.0.0.1:5000/books').then(response => {
@@ -42,6 +43,22 @@ function App() {
             })
         }
     }, [bookPage, selectedBook]);
+
+    function handleGenerate() {
+        if (!selectedBook) {
+            setPromptResponse("Please select a book")
+            return
+        }
+        axios.post('http://127.0.0.1:5000/prompt', {
+            book: selectedBook.id,
+            pages: pages,
+            type: requiredContent
+        }).then(response => {
+            setPromptResponse(response.data)
+        }).catch(error => {
+            setPromptResponse("Error")
+        })
+    }
 
     return (
         <Box bgcolor={'lightgray'} p={0} m={0}>
@@ -100,7 +117,7 @@ function App() {
                                 <Box>
                                     {Object.entries(selectedBook ?? {}).map(([key, value]) => {
                                         return <>
-                                            <Typography variant={'body2'} fontWeight={'bold'}>
+                                            <Typography variant={'body2'} fontWeight={'bold'} display={"inline"}>
                                                 {key}:
                                             </Typography>
                                             <Typography variant={'body2'}>
@@ -139,17 +156,17 @@ function App() {
                         <Stack direction={'row'} spacing={2} divider={<Divider flexItem orientation={'vertical'}/>}>
                             <Box>
                                 <TextField label={"Lesson Plan Pages"} helperText={'e.g: 1-2, 3, 99'} size={'small'}
-                                           margin={'dense'}/>
+                                           margin={'dense'} value={pages} onChange={(event) => setPages(event.target.value)}/>
                                 <FormControl fullWidth size={'small'} margin={'dense'}>
                                     <InputLabel id={'content-select'}>Required Content</InputLabel>
-                                    <Select label={'Required Content'}>
-                                        <MenuItem>
+                                    <Select label={'Required Content'} value={requiredContent} onChange={(event) => setRequiredContent(event.target.value)}>
+                                        <MenuItem value={'qa'}>
                                             Questions and Answers
                                         </MenuItem>
-                                        <MenuItem>
+                                        <MenuItem value={'lp'}>
                                             Lesson Plan
                                         </MenuItem>
-                                        <MenuItem>
+                                        <MenuItem value={'cs'}>
                                             Chapter Summary
                                         </MenuItem>
                                     </Select>
@@ -161,7 +178,7 @@ function App() {
                                     Powered By &nbsp;
                                     <img src={'gemini.png'} width={100}/>
                                 </Typography>
-                                <Button variant={'contained'} sx={{height: 80}}>
+                                <Button variant={'contained'} sx={{height: 80}} onClick={() => handleGenerate()}>
                                     Generate
                                 </Button>
                             </Stack>
@@ -171,7 +188,12 @@ function App() {
                 </Box>
                 <Box pb={5}>
                     <Paper>
-                        <Box height={100}>
+                        <Box minHeight={100} p={2}>
+                            <pre>
+                            <Typography variant={'body2'} sx={{overflowX: 'scroll'}}>
+                                {promptResponse}
+                            </Typography>
+                            </pre>
                         </Box>
                     </Paper>
                 </Box>

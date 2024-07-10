@@ -4,6 +4,7 @@ from forms import BookForm
 from database import db, Book
 from functions.book import *
 from flask_cors import CORS, cross_origin
+
 app = Flask(__name__, static_url_path="/static")
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -13,8 +14,6 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
-
-
 
 app.config['SECRET_KEY'] = 'SECRET!'
 
@@ -38,6 +37,7 @@ def main_page():  # put application's code here
 
     return render_template('main/index.html', book_form=book_form, library_images=library_images, books=books)
 
+
 @app.route('/books')
 @cross_origin()
 def books():
@@ -46,39 +46,32 @@ def books():
     # return b
     return jsonify(b)
 
+
 @app.route('/prompt', methods=['POST'])
+@cross_origin()
 def prompt():
-    import re
-    gen_type = request.form.get('type', "3")
-    print("gen type",gen_type)
+    data = request.get_json()
+    gen_type = data['type']
+    pages = data['pages']
     file = ""
-    if gen_type == "1":
+    if gen_type == "qa":
         file = "chatbot/output/master_margarita_QA.txt"
-    elif gen_type == "3":
+    elif gen_type == "cs":
         file = "chatbot/output/master_margarita_summaries.txt"
-    else:
+    elif gen_type == "lp":
         file = "chatbot/output/master_margarita_summaries.txt"
 
     with open(file, "r", encoding='utf-8') as f:
         text = f.read()
 
-        text = text.replace('\r', '')
-        text = text.replace('\n\n\n', '\n')
-        text = text.replace('\n\n', '\n')
-
-        print("text length:",len(text), ".bytes length", len(text.encode('ascii')))
-
-        if len(text) > 4090:
-            # cookie can contain only 4096 bytes
-            session['prompt'] = text[:3000]
-        else:
-            session['prompt'] = text
-
-    flash("Prompt generated", "success")
+    # text = text.replace('\r', '')
+    # text = text.replace('\n\n\n', '\n')
+    # text = text.replace('\n\n', '\n')
     return jsonify(text)
 
 
 @app.route('/get_page', methods=['POST'])
+@cross_origin()
 def change_chapter():
     data = request.get_json()
     page = data['page']
