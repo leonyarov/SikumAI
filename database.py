@@ -89,3 +89,16 @@ class Question(db.Model):
         self.book_id = book_id
         self.question = question
         self.answer = answer
+
+
+class Prompt(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    prompt = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"Prompt('{self.id}', '{self.prompt}')"
+
+    def __init__(self, prompt, response):
+        self.prompt = prompt
+        self.response = response

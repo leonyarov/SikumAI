@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
-import pdfplumber
+from functions.prompt_caching import get_prompt,save_prompt
 from functions.book import get_book_chapter, get_possible_chapter_list
 # Load environment variables from .env file
 load_dotenv()
@@ -82,6 +82,10 @@ def generate_summary(prompt):
         Returns:
         str: The generated summary from the API.
         """
+    if get_prompt(prompt) is not None:
+        return get_prompt(prompt).response
+
+
     google_api_key = os.getenv('GOOGLE_API_KEY')
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -90,7 +94,7 @@ def generate_summary(prompt):
     response = requests.post(url, headers=headers, params=params, json=payload)
     if response.status_code == 200:
         summary = response.json()['candidates'][0]['content']['parts'][0]['text']
-        # save_prompt(prompt, summary)
+        save_prompt(prompt, summary)
         return summary
     else:
         err_msg = response.text

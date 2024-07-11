@@ -1,6 +1,7 @@
 import pdfplumber
 import os
 
+
 def get_book_chapter(book_name, chapter: int):
     """
         Extracts text from a specific chapter of a book in PDF format.
@@ -24,3 +25,20 @@ def get_possible_chapter_list(book_name):
         text = pdf.pages[0: 10]
         text = [page.extract_text() for page in text]
         return " ".join(text)
+
+
+def find_chapter(book_name, chapter_name, chapter_list):
+    pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
+    chapter_text = ""
+    chapters = dict()
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages):
+            chapter_text += page.extract_text()
+            if chapter_list[1] in page.extract_text():
+                chapter_text += page.extract_text().split(chapter_list[1])[0]
+                chapters[chapter_list[0]] = chapter_text
+                chapter_list.pop(0)
+                chapter_text = ""
+                if len(chapter_list) == 0:
+                    return chapters[chapter_name]
+        return chapters[chapter_name]
