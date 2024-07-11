@@ -43,5 +43,49 @@ class Book(db.Model):
         self.msdn = msdn
         self.image = image
 
-    # def __repr__(self):
-    #     return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class PlotPoint(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    book_id = db.Column(db.String(36), db.ForeignKey('book.id'), nullable=False)
+    chapter_name = db.Column(db.String(100), nullable=True)
+    chapter_number = db.Column(db.Integer, default=0)
+    death_and_tragic_events = db.Column(db.Text, nullable=True)
+    decisions = db.Column(db.Text, nullable=True)
+    conflicts = db.Column(db.Text, nullable=True)
+    character_development = db.Column(db.Text, nullable=True)
+    symbolism_and_imagery = db.Column(db.Text, nullable=True)
+    foreshadowing = db.Column(db.Text, nullable=True)
+    setting_description = db.Column(db.Text, nullable=True)
+    chapter_summary = db.Column(db.Text, nullable=True)
+
+    def __repr__(self):
+        return f"PlotPoint('{self.id}', chapter {self.chapter_number}: '{self.chapter_name}')"
+
+    def __init__(self, chapter_id, death_and_tragic_events=None, decisions=None, conflicts=None,
+                 character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None, chapter_summary=None, chapter_number=0, chapter_name=None):
+        self.chapter_id = chapter_id
+        self.death_and_tragic_events = death_and_tragic_events
+        self.decisions = decisions
+        self.conflicts = conflicts
+        self.character_development = character_development
+        self.symbolism_and_imagery = symbolism_and_imagery
+        self.foreshadowing = foreshadowing
+        self.setting_description = setting_description
+        self.chapter_summary = chapter_summary
+        self.chapter_number = chapter_number
+        self.chapter_name = chapter_name
+
+
+class Question(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    book_id = db.Column(db.String(36), db.ForeignKey('book.id'), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    answer = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"Question('{self.id}', '{self.question}')"
+
+    def __init__(self, book_id, question, answer):
+        self.book_id = book_id
+        self.question = question
+        self.answer = answer

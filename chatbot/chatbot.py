@@ -3,28 +3,11 @@ import json
 import requests
 from dotenv import load_dotenv
 import pdfplumber
-from prompt_db import save_prompt
-
-
+from functions.book import get_book_chapter, get_possible_chapter_list
 # Load environment variables from .env file
 load_dotenv()
 
 
-def get_book_chapter(book_name, chapter: int):
-    """
-        Extracts text from a specific chapter of a book in PDF format.
-
-        Parameters:
-        book_name (str): The name of the book.
-        chapter (int): The chapter number to extract.
-
-        Returns:
-        str: The text content of the specified chapter.
-        """
-    pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
-    with pdfplumber.open(pdf_path) as pdf:
-        first_page = pdf.pages[chapter - 1]
-        return first_page.extract_text()
 
 
 def build_prompt(book_name, chapter_name, page_number, page_content, next_page_content, previous_summaries):
@@ -70,6 +53,25 @@ def build_qa_prompt(book_name, chapter_name, detailed_summary):
     return prompt
 
 
+def build_chapter_list_prompt(book_name):
+    """
+        Builds a prompt for generating a list of possible chapters in a book.
+
+        Parameters:
+        book_name (str): The name of the book.
+
+        Returns:
+        str: The constructed prompt for the language model to generate a list of chapters.
+        """
+    chapter_list = get_possible_chapter_list(book_name)
+    prompt = (f"Generate a list of possible chapters for the book '{book_name}'.\n"
+              f"return a list of chapters in the format: 'Title 1,Title 2, ...'\n"
+              f"Extracted text:\n{chapter_list}.\n"
+              )
+
+    return prompt
+
+
 def generate_summary(prompt):
     """
         Generates a summary using the Google Language Model API.
@@ -88,11 +90,11 @@ def generate_summary(prompt):
     response = requests.post(url, headers=headers, params=params, json=payload)
     if response.status_code == 200:
         summary = response.json()['candidates'][0]['content']['parts'][0]['text']
-        save_prompt(prompt, summary)
+        # save_prompt(prompt, summary)
         return summary
     else:
         err_msg = response.text
-        save_prompt(prompt, err_msg)
+        # save_prompt(prompt, err_msg)
         return {"error": response.text}
 
 
@@ -143,6 +145,7 @@ def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):
 
 
 # Adjust the example usage accordingly
+'''
 book_name = "master_margarita"
 book_chapters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 chapter_names = ["Never Talk to Strangers", "Pontius Pilate", "The Seventh Proof", "The Pursuit",
@@ -152,3 +155,4 @@ chapter_names = ["Never Talk to Strangers", "Pontius Pilate", "The Seventh Proof
 summary_file_path, qa_file_path = generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names)
 print("Summaries saved to:", summary_file_path)
 print("Q&A saved to:", qa_file_path)
+'''
