@@ -61,9 +61,9 @@ class PlotPoint(db.Model):
     def __repr__(self):
         return f"PlotPoint('{self.id}', chapter {self.chapter_number}: '{self.chapter_name}')"
 
-    def __init__(self, chapter_id, death_and_tragic_events=None, decisions=None, conflicts=None,
+    def __init__(self, book_id, death_and_tragic_events=None, decisions=None, conflicts=None,
                  character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None, chapter_summary=None, chapter_number=0, chapter_name=None):
-        self.chapter_id = chapter_id
+        self.book_id = book_id
         self.death_and_tragic_events = death_and_tragic_events
         self.decisions = decisions
         self.conflicts = conflicts

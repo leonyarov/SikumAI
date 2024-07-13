@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="database" uuid="c00bd98c-ed39-4548-a32d-6a5210bcf396">
+    <data-source source="LOCAL" name="database [2]" uuid="2f6e180e-5de8-4024-92e0-02b33e8a8cd0">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:C:\Users\Leon\PycharmProjects\SikumAI\instance\database.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/instance/database.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

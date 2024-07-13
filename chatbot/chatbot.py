@@ -2,77 +2,16 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
-from functions.prompt_caching import get_prompt,save_prompt
+from functions.prompt_caching import get_prompt, save_prompt
 from functions.book import get_book_chapter, get_possible_chapter_list
-# Load environment variables from .env file
+from chatbot.prompt_generating import build_prompt, build_qa_prompt, build_plot_points_prompt, build_chapter_list_prompt
+from database import db, PlotPoint
+
+# Load environment variables from ..env file
 load_dotenv()
 
 
-
-
-def build_prompt(book_name, chapter_name, page_number, page_content, next_page_content, previous_summaries):
-    """
-        Builds a prompt for generating a detailed summary of a book chapter.
-
-        Parameters:
-        book_name (str): The name of the book.
-        chapter_name (str): The name of the chapter.
-        page_number (int): The current page number.
-        page_content (str): The content of the current page.
-        next_page_content (str): The content of the next page.
-        previous_summaries (list): A list of previous chapter summaries.
-
-        Returns:
-        str: The constructed prompt for the language model.
-        """
-    previous_summary_text = "\n\n".join(previous_summaries)
-    prompt = (f"Summary of {book_name}, Chapter '{chapter_name}', Page {page_number}:\n\n{page_content}\n\n"
-              f"Continued on next page:\n{next_page_content}\n\nPrevious summaries:\n{previous_summary_text}\n\n"
-              "Please generate a detailed summary for this page, focusing on key plot points, "
-              "character developments, and story-driven actions. Include any significant decisions made by characters, "
-              "conflicts, emotional moments, and elements of foreshadowing or symbolism.")
-    return prompt
-
-
-def build_qa_prompt(book_name, chapter_name, detailed_summary):
-    """
-       Builds a prompt for generating educational questions and answers based on a chapter summary.
-
-       Parameters:
-       book_name (str): The name of the book.
-       chapter_name (str): The name of the chapter.
-       detailed_summary (str): The detailed summary of the chapter.
-
-       Returns:
-       str: The constructed prompt for the language model to generate Q&A.
-       """
-    prompt = (f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', "
-              "generate a set of educational questions and their corresponding answers. Focus on character motivations, "
-              "plot implications, thematic elements, and any significant narrative techniques used in this chapter.\n\n"
-              f"Detailed Summary:\n{detailed_summary}\n")
-    return prompt
-
-
-def build_chapter_list_prompt(book_name):
-    """
-        Builds a prompt for generating a list of possible chapters in a book.
-
-        Parameters:
-        book_name (str): The name of the book.
-
-        Returns:
-        str: The constructed prompt for the language model to generate a list of chapters.
-        """
-    chapter_list = get_possible_chapter_list(book_name)
-    prompt = (f"Generate a list of possible chapters for the book '{book_name}'.\n"
-              f"return a list of chapters in the format: 'Title 1,Title 2, ...'\n"
-              f"Extracted text:\n{chapter_list}.\n"
-              )
-
-    return prompt
-
-
-def generate_summary(prompt):
+def execute_prompt(prompt):
     """
         Generates a summary using the Google Language Model API.
 
@@ -84,7 +23,6 @@ def generate_summary(prompt):
         """
     if get_prompt(prompt) is not None:
         return get_prompt(prompt).response
-
 
     google_api_key = os.getenv('GOOGLE_API_KEY')
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
@@ -100,6 +38,96 @@ def generate_summary(prompt):
         err_msg = response.text
         # save_prompt(prompt, err_msg)
         return {"error": response.text}
+
+
+def generate_plot_points(book_id, chapter_name, chapter_number, page_content):
+    """
+    Generates plot points for a book chapter and saves them to the database.
+
+    Parameters:
+    book_id (str): The ID of the book.
+    chapter_name (str): The name of the chapter.
+    chapter_number (int): The number of the chapter.
+    page_content (str): The content of the current page.
+
+    Returns:
+    str: A success message or error.
+    """
+    plot_points_prompt = build_plot_points_prompt(book_id, chapter_name, page_content)
+    plot_points_response = execute_prompt(plot_points_prompt)
+
+    if "error" in plot_points_response:
+        return plot_points_response["error"]
+
+    # Assuming the plot_points_response is a structured text or JSON that we can parse
+    plot_points_data = parse_plot_points_response(plot_points_response)
+
+    plot_point = PlotPoint(
+        book_id=book_id,
+        chapter_name=chapter_name,
+        chapter_number=chapter_number,
+        death_and_tragic_events=plot_points_data.get('death_and_tragic_events'),
+        decisions=plot_points_data.get('decisions'),
+        conflicts=plot_points_data.get('conflicts'),
+        character_development=plot_points_data.get('character_development'),
+        symbolism_and_imagery=plot_points_data.get('symbolism_and_imagery'),
+        foreshadowing=plot_points_data.get('foreshadowing'),
+        setting_description=plot_points_data.get('setting_description'),
+        chapter_summary=plot_points_data.get('chapter_summary')
+    )
+
+    db.session.add(plot_point)
+    db.session.commit()
+
+    return "Plot points generated and saved successfully."
+
+
+def parse_plot_points_response(response):
+    """
+    Parses the response from the API into structured plot points data.
+
+    Parameters:
+    response (str): The response from the API.
+
+    Returns:
+    dict: Parsed plot points data.
+    """
+    # This is an example of how you might parse a response.
+    # The actual implementation will depend on the format of the response from the API.
+    lines = response.split('\n')
+    plot_points_data = {
+        'death_and_tragic_events': '',
+        'decisions': '',
+        'conflicts': '',
+        'character_development': '',
+        'symbolism_and_imagery': '',
+        'foreshadowing': '',
+        'setting_description': '',
+        'chapter_summary': ''
+    }
+
+    current_category = None
+    for line in lines:
+        if line.startswith("Death and Tragic Events:"):
+            current_category = 'death_and_tragic_events'
+        elif line.startswith("Decisions:"):
+            current_category = 'decisions'
+        elif line.startswith("Conflicts:"):
+            current_category = 'conflicts'
+        elif line.startswith("Character Development:"):
+            current_category = 'character_development'
+        elif line.startswith("Symbolism and Imagery:"):
+            current_category = 'symbolism_and_imagery'
+        elif line.startswith("Foreshadowing:"):
+            current_category = 'foreshadowing'
+        elif line.startswith("Setting Description:"):
+            current_category = 'setting_description'
+        elif line.startswith("Chapter Summary:"):
+            current_category = 'chapter_summary'
+        elif current_category:
+            plot_points_data[current_category] += line + '\n'
+
+    return plot_points_data
 
 
 def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):
@@ -123,12 +151,12 @@ def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):
         next_chapter_content = get_book_chapter(book_name, book_chapters[i + 1]) if i < len(book_chapters) - 1 else ""
         detailed_summary_prompt = build_prompt(book_name, chapter_names[i], chapter_number, chapter_content,
                                                next_chapter_content, previous_summaries)
-        detailed_summary = generate_summary(detailed_summary_prompt)
+        detailed_summary = execute_prompt(detailed_summary_prompt)
         chapter_summaries.append(detailed_summary)
         previous_summaries.append(detailed_summary)
 
         qa_prompt = build_qa_prompt(book_name, chapter_names[i], detailed_summary)
-        qa_content = generate_summary(qa_prompt)
+        qa_content = execute_prompt(qa_prompt)
         questions_and_answers.append(qa_content)
 
     # Write summaries to the output file
