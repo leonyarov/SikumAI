@@ -1,4 +1,3 @@
-from flask import Flask
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass

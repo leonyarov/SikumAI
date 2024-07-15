@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 
 from functions.formatting import chapters_to_list
 from functions.prompt_caching import get_prompt, save_prompt
-from functions.book import get_book_chapter, get_possible_chapter_list
+from functions.book import get_book_chapter, get_possible_chapter_list, find_chapter
 from chatbot.prompt_generating import build_prompt, build_qa_prompt, build_plot_points_prompt, build_chapter_list_prompt
 from database import db, PlotPoint
+import logging
 
 # Load environment variables from ..env file
 load_dotenv()
@@ -41,8 +42,11 @@ def execute_prompt(prompt):
         try:
             summary = response.json()['candidates'][0]['content']['parts'][0]['text']
             save_prompt(prompt, summary)
+            logging.debug(f"API Response:{summary}")
             return summary
         except:
+            err_msg = response.text
+            logging.error(f"API Response:{err_msg}")
             print(response.json())
     else:
         err_msg = response.text
@@ -50,7 +54,7 @@ def execute_prompt(prompt):
         return {"error": response.text}
 
 
-def generate_plot_points(book_id, chapter_name, chapter_number, page_content):
+def generate_plot_points(book_name, chapter_name, chapter_list):
     """
     Generates plot points for a book chapter and saves them to the database.
 
@@ -63,7 +67,9 @@ def generate_plot_points(book_id, chapter_name, chapter_number, page_content):
     Returns:
     str: A success message or error.
     """
-    plot_points_prompt = build_plot_points_prompt(book_id, chapter_name, page_content)
+    page_content = find_chapter(book_name, chapter_name, chapter_list)
+
+    plot_points_prompt = build_plot_points_prompt(book_name, chapter_name, page_content)
     plot_points_response = execute_prompt(plot_points_prompt)
 
     if "error" in plot_points_response:
@@ -73,9 +79,8 @@ def generate_plot_points(book_id, chapter_name, chapter_number, page_content):
     plot_points_data = parse_plot_points_response(plot_points_response)
 
     plot_point = PlotPoint(
-        book_id=book_id,
+        book_id=book_name,
         chapter_name=chapter_name,
-        chapter_number=chapter_number,
         death_and_tragic_events=plot_points_data.get('death_and_tragic_events'),
         decisions=plot_points_data.get('decisions'),
         conflicts=plot_points_data.get('conflicts'),
@@ -85,11 +90,8 @@ def generate_plot_points(book_id, chapter_name, chapter_number, page_content):
         setting_description=plot_points_data.get('setting_description'),
         chapter_summary=plot_points_data.get('chapter_summary')
     )
-
-    db.session.add(plot_point)
-    db.session.commit()
-
-    return "Plot points generated and saved successfully."
+    print("Plot points generated and saved successfully.")
+    return plot_point, plot_points_data
 
 
 def parse_plot_points_response(response):
@@ -102,9 +104,11 @@ def parse_plot_points_response(response):
     Returns:
     dict: Parsed plot points data.
     """
-    # This is an example of how you might parse a response.
-    # The actual implementation will depend on the format of the response from the API.
-    lines = response.split('\n')
+    import re
+
+    logging.debug(f"Raw API Response: {response}")
+
+    # Initialize the dictionary with empty strings
     plot_points_data = {
         'death_and_tragic_events': '',
         'decisions': '',
@@ -116,28 +120,31 @@ def parse_plot_points_response(response):
         'chapter_summary': ''
     }
 
-    current_category = None
-    for line in lines:
-        if line.startswith("Death and Tragic Events:"):
-            current_category = 'death_and_tragic_events'
-        elif line.startswith("Decisions:"):
-            current_category = 'decisions'
-        elif line.startswith("Conflicts:"):
-            current_category = 'conflicts'
-        elif line.startswith("Character Development:"):
-            current_category = 'character_development'
-        elif line.startswith("Symbolism and Imagery:"):
-            current_category = 'symbolism_and_imagery'
-        elif line.startswith("Foreshadowing:"):
-            current_category = 'foreshadowing'
-        elif line.startswith("Setting Description:"):
-            current_category = 'setting_description'
-        elif line.startswith("Chapter Summary:"):
-            current_category = 'chapter_summary'
-        elif current_category:
-            plot_points_data[current_category] += line + '\n'
+    # Use regex to find sections and their content
+    sections = re.split(r'\*\*\d+\.\s([A-Za-z\s]+)\*\*', response)
 
+    section_names = {
+        "Death and Tragic Events": 'death_and_tragic_events',
+        "Decisions": 'decisions',
+        "Conflicts": 'conflicts',
+        "Character Development": 'character_development',
+        "Symbolism and Imagery": 'symbolism_and_imagery',
+        "Foreshadowing": 'foreshadowing',
+        "Setting Description": 'setting_description',
+        "Chapter Summary": 'chapter_summary'
+    }
+
+    current_section = None
+    for i, section in enumerate(sections):
+        section = section.strip()
+        if section in section_names:
+            current_section = section_names[section]
+        elif current_section:
+            plot_points_data[current_section] += section
+
+    logging.debug(f"Parsed Plot Points Data: {plot_points_data}")
     return plot_points_data
+    # ToDo - Save to DataBase
 
 
 def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):

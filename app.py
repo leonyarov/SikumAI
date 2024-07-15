@@ -1,10 +1,11 @@
+import logging
 from flask import Flask, flash, request, url_for, redirect, get_flashed_messages, session, jsonify
 from flask import render_template
 from forms import BookForm
 from database import db, Book
 from functions.book import *
 from flask_cors import CORS, cross_origin
-from chatbot import generate_plot_points
+from chatbot.chatbot import generate_plot_points
 app = Flask(__name__, static_url_path="/static")
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -119,12 +120,14 @@ def add_book():
 @cross_origin()
 def generate_plot_points_route():
     data = request.get_json()
+    logging.debug(f"Received data: {data}")
     book_id = data['book_id']
     chapter_name = data['chapter_name']
     chapter_number = data['chapter_number']
     page_content = data['page_content']
 
     result = generate_plot_points(book_id, chapter_name, chapter_number, page_content)
+    logging.debug(f"Result: {result}")
     return jsonify({'result': result})
 
 
