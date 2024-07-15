@@ -1,6 +1,8 @@
 import pdfplumber
 import os
 
+from functions.prompt_caching import get_chapter, save_chapter
+
 
 def get_book_chapter(book_name, chapter: int):
     """
@@ -28,6 +30,9 @@ def get_possible_chapter_list(book_name):
 
 
 def find_chapter(book_name, chapter_name, chapter_list):
+    if get_chapter(book_name, chapter_name) is not None:
+        return get_chapter(book_name, chapter_name).chapter_text
+
     pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
     chapter_text = ""
     chapters = dict()
@@ -39,6 +44,12 @@ def find_chapter(book_name, chapter_name, chapter_list):
                 chapters[chapter_list[0]] = chapter_text
                 chapter_list.pop(0)
                 chapter_text = ""
+
                 if len(chapter_list) == 0:
+                    save_chapter(book_name, chapters[chapter_name], chapter_name)
                     return chapters[chapter_name]
+
+        save_chapter(book_name, chapters[chapter_name], chapter_name)
         return chapters[chapter_name]
+
+

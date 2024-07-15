@@ -2,6 +2,8 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
+
+from functions.formatting import chapters_to_list
 from functions.prompt_caching import get_prompt, save_prompt
 from functions.book import get_book_chapter, get_possible_chapter_list
 from chatbot.prompt_generating import build_prompt, build_qa_prompt, build_plot_points_prompt, build_chapter_list_prompt
@@ -10,6 +12,11 @@ from database import db, PlotPoint
 # Load environment variables from ..env file
 load_dotenv()
 
+
+def get_chapter_list(book_name):
+    prompt = build_chapter_list_prompt(book_name)
+    result = execute_prompt(prompt)
+    return chapters_to_list(result)
 
 def execute_prompt(prompt):
     """
@@ -31,9 +38,12 @@ def execute_prompt(prompt):
     params = {"key": google_api_key}
     response = requests.post(url, headers=headers, params=params, json=payload)
     if response.status_code == 200:
-        summary = response.json()['candidates'][0]['content']['parts'][0]['text']
-        save_prompt(prompt, summary)
-        return summary
+        try:
+            summary = response.json()['candidates'][0]['content']['parts'][0]['text']
+            save_prompt(prompt, summary)
+            return summary
+        except:
+            print(response.json())
     else:
         err_msg = response.text
         # save_prompt(prompt, err_msg)

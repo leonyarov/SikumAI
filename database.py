@@ -102,3 +102,18 @@ class Prompt(db.Model):
     def __init__(self, prompt, response):
         self.prompt = prompt
         self.response = response
+
+
+class BookChapter(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    book_name = db.Column(db.String(100), nullable=False)
+    chapter_title = db.Column(db.String(100), nullable=False)
+    chapter_text = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"BookChapter('{self.id}', '{self.chapter_title}')"
+
+    def __init__(self, book_name, chapter_title, chapter_text):
+        self.book_name = book_name
+        self.chapter_title = chapter_title
+        self.chapter_text = chapter_text
