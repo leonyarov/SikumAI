@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from database import Prompt, db, BookChapter
 from sqlalchemy import create_engine
 
+
 def save_prompt(prompt, result):
     p = Prompt(prompt=prompt, response=result)
     try:
@@ -15,6 +16,17 @@ def save_prompt(prompt, result):
         session.add(p)
         session.commit()
 
+
+def save(obj, overwrite=False):
+    try:
+        db.session.add(obj)
+        db.session.commit()
+    except:
+        engine = create_engine('sqlite:///instance/database.db')
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        session.add(obj)
+        session.commit()
 
 
 def get_prompt(prompt):
@@ -39,6 +51,7 @@ def save_chapter(book_name, chapter_text, chapter_title):
         session = Session()
         session.add(p)
         session.commit()
+
 
 def get_chapter(book_name, chapter_title):
     try:

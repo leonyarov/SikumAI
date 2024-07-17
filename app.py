@@ -1,11 +1,15 @@
 import logging
 from flask import Flask, flash, request, url_for, redirect, get_flashed_messages, session, jsonify
 from flask import render_template
+
+from chatbot.responses.lesson_plan import lesson_plan_prompt
 from forms import BookForm
 from database import db, Book
 from functions.book import *
 from flask_cors import CORS, cross_origin
-from chatbot.chatbot import generate_plot_points
+from chatbot.chatbot import generate_plot_points, get_chapter_list
+from functions.formatting import chapters_to_list
+
 app = Flask(__name__, static_url_path="/static")
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -76,8 +80,9 @@ def prompt():
 def change_chapter():
     data = request.get_json()
     page = data['page']
-    book = data['book']
-    text = get_book_chapter(page)
+    book_id = data['book']
+    book = Book.query.filter_by(id=book_id).first()
+    text = get_book_chapter(book.file_name, page)
     return jsonify(text)
 
 
@@ -116,8 +121,8 @@ def add_book():
         # Redirect to the list of books
     return redirect("/")
 
+@cross_origin
 @app.route('/generate_plot_points', methods=['POST'])
-@cross_origin()
 def generate_plot_points_route():
     data = request.get_json()
     logging.debug(f"Received data: {data}")
@@ -130,6 +135,29 @@ def generate_plot_points_route():
     logging.debug(f"Result: {result}")
     return jsonify({'result': result})
 
+@cross_origin
+@app.route("/get_chapters", methods=['POST'])
+def get_chapters():
+    data = request.get_json()
+    book_id = data['book_id']
+    book = Book.query.filter_by(id=book_id).first()
+    chapters = get_chapter_list(book_name=book.file_name)
+    return jsonify(chapters)
+
+@cross_origin
+@app.route('/generate_lesson_plan', methods=['POST'])
+def generate_lesson_plan():
+    data = request.get_json()
+
+    book_id = data['book_id']
+    chapter_name = data['chapter_name']
+
+    book = Book.query.filter_by(id=book_id).first()
+    result = lesson_plan_prompt(book_name=book.file_name, chapter=chapter_name)
+    if result is None:
+        result = "Error generating lesson plan"
+
+    return jsonify({'result': result})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,7 +1,7 @@
 import {
     Box,
     Button,
-    ButtonBase,
+    ButtonBase, CircularProgress,
     Container,
     Divider,
     FormControl,
@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import {useEffect, useState} from "react";
 import axios from "axios";
+import LessonPlan from "./PrompResults/LessonPlan";
 
 function App() {
 
@@ -23,9 +24,12 @@ function App() {
     const [books, setBooks] = useState([])
     const [bookText, setBookText] = useState('')
     const [bookPage, setBookPage] = useState(1)
-    const [pages, setPages] = useState("1")
+    const [bookChapters, setBookChapters] = useState([])
+
+    const [chapter, setChapter] = useState("")
     const [requiredContent, setRequiredContent] = useState('qa')
     const [promptResponse, setPromptResponse] = useState("")
+    const [loadingPrompt, setLoadingPrompt] = useState(false)
 
     useEffect(() => {
         axios.get('http://127.0.0.1:5000/books').then(response => {
@@ -43,20 +47,39 @@ function App() {
             })
         }
     }, [bookPage, selectedBook]);
+    useEffect(() => {
+        if (!selectedBook) return
+        axios.post('http://127.0.0.1:5000/get_chapters', {'book_id': selectedBook.id}).then(response => {
+            setBookChapters(response.data)
+        })
+    }, [selectedBook])
 
     function handleGenerate() {
         if (!selectedBook) {
             setPromptResponse("Please select a book")
             return
         }
-        axios.post('http://127.0.0.1:5000/prompt', {
-            book: selectedBook.id,
-            pages: pages,
-            type: requiredContent
+        setLoadingPrompt(true)
+        // axios.post('http://127.0.0.1:5000/prompt', {
+        //     book: selectedBook.id,
+        //     pages: pages,
+        //     type: requiredContent
+        // }).then(response => {
+        //     setPromptResponse(response.data)
+        // }).catch(error => {
+        //     setPromptResponse("Error")
+        // })
+
+        axios.post('http://127.0.0.1:5000/generate_lesson_plan', {
+            'book_id': selectedBook.id,
+            'chapter_name': chapter
         }).then(response => {
             setPromptResponse(response.data)
+
         }).catch(error => {
-            setPromptResponse("Error")
+          console.log("error")
+        }).finally(() => {
+            setLoadingPrompt(false)
         })
     }
 
@@ -137,11 +160,13 @@ function App() {
                 <Box mb={2}>
                     <Paper>
                         <Box p={2}>
-                            <Typography maxHeight={500} minHeight={100} variant={'body2'} overflowY={'scroll'}>
+                            <pre>
+
+                            <Typography minHeight={100} variant={'body2'} overflowY={'scroll'}>
                                 {bookText}
                             </Typography>
+                            </pre>
                             <Box display={'flex'} justifyContent={'center'}>
-
                                 <Pagination count={50} shape={'rounded'} onChange={(event, page) => setBookPage(page)}/>
                             </Box>
                         </Box>
@@ -155,11 +180,25 @@ function App() {
                     <Paper variant={'outlined'} sx={{p: 2}}>
                         <Stack direction={'row'} spacing={2} divider={<Divider flexItem orientation={'vertical'}/>}>
                             <Box>
-                                <TextField label={"Lesson Plan Pages"} helperText={'e.g: 1-2, 3, 99'} size={'small'}
-                                           margin={'dense'} value={pages} onChange={(event) => setPages(event.target.value)}/>
+                                <FormControl fullWidth size={'small'} margin={'dense'}>
+                                    <InputLabel id={'chapter-select'}>Select Chapter</InputLabel>
+                                    <Select label={'Required Content'} size={'small'} value={chapter}
+                                            onChange={(event) => {
+                                                setChapter(event.target.value)
+                                            }}>
+                                        {
+                                            bookChapters.map(chapter => {
+                                                return <MenuItem value={chapter}>{chapter}</MenuItem>
+                                            })
+                                        }
+                                    </Select>
+
+                                </FormControl>
+
                                 <FormControl fullWidth size={'small'} margin={'dense'}>
                                     <InputLabel id={'content-select'}>Required Content</InputLabel>
-                                    <Select label={'Required Content'} value={requiredContent} onChange={(event) => setRequiredContent(event.target.value)}>
+                                    <Select label={'Required Content'} value={requiredContent}
+                                            onChange={(event) => setRequiredContent(event.target.value)}>
                                         <MenuItem value={'qa'}>
                                             Questions and Answers
                                         </MenuItem>
@@ -179,7 +218,10 @@ function App() {
                                     <img src={'gemini.png'} width={100}/>
                                 </Typography>
                                 <Button variant={'contained'} sx={{height: 80}} onClick={() => handleGenerate()}>
-                                    Generate
+                                    {loadingPrompt ?
+                                        <CircularProgress color={'info'}/> :
+                                        "Generate"
+                                    }
                                 </Button>
                             </Stack>
                         </Stack>
@@ -189,11 +231,11 @@ function App() {
                 <Box pb={5}>
                     <Paper>
                         <Box minHeight={100} p={2}>
-                            <pre>
                             <Typography variant={'body2'} sx={{overflowX: 'scroll'}}>
-                                {promptResponse}
+                                {requiredContent === 'lp' && promptResponse.result &&
+                                    <LessonPlan lesson={promptResponse.result}/>
+                                }
                             </Typography>
-                            </pre>
                         </Box>
                     </Paper>
                 </Box>

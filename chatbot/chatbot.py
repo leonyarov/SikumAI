@@ -31,7 +31,7 @@ def execute_prompt(prompt):
         """
     if get_prompt(prompt) is not None:
         return get_prompt(prompt).response
-
+    print(f"Executing prompt {prompt[:20]}...")
     google_api_key = os.getenv('GOOGLE_API_KEY')
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -51,7 +51,7 @@ def execute_prompt(prompt):
     else:
         err_msg = response.text
         # save_prompt(prompt, err_msg)
-        return {"error": response.text}
+        return "Error"
 
 
 def generate_plot_points(book_name, chapter_name, chapter_list):

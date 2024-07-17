@@ -14,6 +14,7 @@ class Book(db.Model):
     short_text: str
     msdn: str
     image: str
+    file_name: str
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     author = db.Column(db.String(100), nullable=False)
@@ -22,6 +23,7 @@ class Book(db.Model):
     short_text = db.Column(db.String(500), nullable=True)
     msdn = db.Column(db.String(100), nullable=True)
     image = db.Column(db.String(100), nullable=True)
+    file_name = db.Column(db.String(100), nullable=True)
 
     def to_dict(self):
         return {
@@ -31,7 +33,8 @@ class Book(db.Model):
             'pages': self.pages,
             'short_text': self.short_text,
             'msdn': self.msdn,
-            'image': self.image
+            'image': self.image,
+            'file_name': self.file_name
         }
 
     def __init__(self, author, title, pages, short_text=None, msdn=None, image="book.jpg"):
@@ -116,3 +119,32 @@ class BookChapter(db.Model):
         self.book_name = book_name
         self.chapter_title = chapter_title
         self.chapter_text = chapter_text
+
+
+@dataclass
+class LessonPlan(db.Model):
+
+    id: str
+    book_name: str
+    reading: str
+    discussion: str
+    bagrut: str
+    writing: str
+
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    book_name = db.Column(db.String(100), nullable=False)
+    reading = db.Column(db.Text, nullable=False)
+    discussion = db.Column(db.Text, nullable=False)
+    bagrut = db.Column(db.Text, nullable=False)
+    writing = db.Column(db.Text, nullable=False)
+
+    def __init__(self, book_name, reading, discussion, bagrut, writing):
+        self.book_name = book_name
+        self.reading = reading
+        self.discussion = discussion
+        self.bagrut = bagrut
+        self.writing = writing
+
+    def __repr__(self):
+        return f"LessonPlan('{self.id}', '{self.book_name}')"
