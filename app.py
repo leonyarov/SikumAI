@@ -1,10 +1,9 @@
 from flask import Flask, request, url_for, redirect, get_flashed_messages, session, jsonify, flash
 from flask import render_template
 from flask_cors import CORS, cross_origin
-from flask_migrate import Migrate
 
-from Chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_and_qa
-from Chatbot.responses.lesson_plan import lesson_plan_prompt
+from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_and_qa
+from chatbot.responses.lesson_plan import lesson_plan_prompt
 from database import db, Book
 from forms import BookForm
 from functions.book import *
@@ -16,7 +15,6 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
-migrate = Migrate(app, db)  # Initialize FLask-Migrate
 
 with app.app_context():
     db.create_all()
@@ -127,17 +125,16 @@ def set_book():
 
 
 @cross_origin
-@app.route('/generate_plot_points', methods=['POST'])
-def generate_plot_points_route():
+@app.route('/generate_summary', methods=['POST'])
+def plot_points():
     data = request.get_json()
-    logging.debug(f"Received data: {data}")
     book_id = data['book_id']
     chapter_name = data['chapter_name']
-    chapter_number = data['chapter_number']
-    page_content = data['page_content']
 
-    result = generate_plot_points(book_id, chapter_name, chapter_number, page_content)
-    logging.debug(f"Result: {result}")
+    book = Book.query.filter_by(id=book_id).first()
+
+    result = generate_plot_points(book.file_name, chapter_name)
+
     return jsonify({'result': result})
 
 

@@ -18,6 +18,7 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import LessonPlan from "./PrompResults/LessonPlan";
 import Markdown from "react-markdown";
+import ChapterSummary from "./PrompResults/ChapterSummary";
 
 function App() {
 
@@ -69,7 +70,12 @@ function App() {
         }
         setLoadingPrompt(true)
 
-        axios.post('http://127.0.0.1:5000/generate_lesson_plan', {
+        let url = 'generate_lesson_plan'
+        if (requiredContent === 'qa') url = 'generate_questions'
+        if (requiredContent === 'cs') url = 'generate_summary'
+
+
+        axios.post(`http://127.0.0.1:5000/${url}`, {
             'book_id': selectedBook.id,
             'chapter_name': chapter
         }).then(response => {
@@ -240,6 +246,10 @@ function App() {
                                 {requiredContent === 'lp' && promptResponse.result &&
                                     <LessonPlan lesson={promptResponse.result}/>
                                 }
+                                {requiredContent === 'cs' && promptResponse.result &&
+                                    <ChapterSummary summary={promptResponse.result}/>
+                                }
+
                             </Typography>
                         </Box>
                     </Paper>

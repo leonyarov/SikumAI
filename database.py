@@ -49,9 +49,24 @@ class Book(db.Model):
         self.file_name = file_name
 
 
+@dataclass
 class PlotPoint(db.Model):
+
+    id: str
+    book_name: str
+    chapter_name: str
+    chapter_number: int
+    death_and_tragic_events: str
+    decisions: str
+    conflicts: str
+    character_development: str
+    symbolism_and_imagery: str
+    foreshadowing: str
+    setting_description: str
+    chapter_summary: str
+
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    book_id = db.Column(db.String(36), db.ForeignKey('book.id'), nullable=False)
+    book_name = db.Column(db.String(100), nullable=False)
     chapter_name = db.Column(db.String(100), nullable=True)
     chapter_number = db.Column(db.Integer, default=0)
     death_and_tragic_events = db.Column(db.Text, nullable=True)
@@ -66,10 +81,10 @@ class PlotPoint(db.Model):
     def __repr__(self):
         return f"PlotPoint('{self.id}', chapter {self.chapter_number}: '{self.chapter_name}')"
 
-    def __init__(self, book_id, death_and_tragic_events=None, decisions=None, conflicts=None,
+    def __init__(self, book_name, death_and_tragic_events=None, decisions=None, conflicts=None,
                  character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None,
                  chapter_summary=None, chapter_number=0, chapter_name=None):
-        self.book_id = book_id
+        self.book_name = book_name
         self.death_and_tragic_events = death_and_tragic_events
         self.decisions = decisions
         self.conflicts = conflicts

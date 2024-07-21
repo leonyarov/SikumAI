@@ -5,12 +5,12 @@ import re
 import requests
 from dotenv import load_dotenv
 
-from Chatbot.prompt_generating import build_bagrut_answers_prompt, build_chapter_list_prompt, build_plot_points_prompt, \
+from chatbot.prompt_generating import build_bagrut_answers_prompt, build_chapter_list_prompt, build_plot_points_prompt, \
     build_bagrut_questions_prompt
 from database import BagrutQuestion, BagrutAnswer, PlotPoint, db
 from functions.book import find_chapter
 from functions.formatting import chapters_to_list
-from functions.prompt_caching import get_prompt, save_prompt
+from functions.prompt_caching import get_prompt, save_prompt, save
 
 # Load environment variables from ..env file
 load_dotenv()
@@ -60,19 +60,9 @@ def execute_prompt(prompt):
     return "Could not get answer from API, try again later"
 
 
-def generate_plot_points(book_name, chapter_name, chapter_list):
-    """
-    Generates plot points for a book chapter and saves them to the database.
+def generate_plot_points(book_name, chapter_name):
 
-    Parameters:
-    book_id (str): The ID of the book.
-    chapter_name (str): The name of the chapter.
-    chapter_number (int): The number of the chapter.
-    page_content (str): The content of the current page.
-
-    Returns:
-    str: A success message or error.
-    """
+    chapter_list = get_chapter_list(book_name)
     page_content = find_chapter(book_name, chapter_name, chapter_list)
 
     plot_points_prompt = build_plot_points_prompt(book_name, chapter_name, page_content)
@@ -87,7 +77,7 @@ def generate_plot_points(book_name, chapter_name, chapter_list):
     plot_points_data = parse_plot_points_response(plot_points_response)
 
     plot_point = PlotPoint(
-        book_id=book_name,
+        book_name=book_name,
         chapter_name=chapter_name,
         death_and_tragic_events=plot_points_data.get('death_and_tragic_events'),
         decisions=plot_points_data.get('decisions'),
@@ -98,6 +88,7 @@ def generate_plot_points(book_name, chapter_name, chapter_list):
         setting_description=plot_points_data.get('setting_description'),
         chapter_summary=plot_points_data.get('chapter_summary')
     )
+    save(plot_point)
     print("Plot points generated and saved successfully.")
     return plot_point, plot_points_data
 
