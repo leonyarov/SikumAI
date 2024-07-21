@@ -1,5 +1,5 @@
-# Lesson Plan builder and Chatbot invocation
-from Chatbot.chatbot import execute_prompt, get_chapter_list
+# Lesson Plan builder and chatbot invocation
+from chatbot.chatbot import execute_prompt, get_chapter_list
 from database import LessonPlan
 from functions.book import find_chapter
 from functions.prompt_caching import save
