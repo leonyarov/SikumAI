@@ -4,6 +4,8 @@ from flask_cors import CORS, cross_origin
 
 from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_and_qa
 from chatbot.responses.lesson_plan import lesson_plan_prompt
+from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_plotPoints_bagrutQnA
+from chatbot.responses.lesson_plan import lesson_plan_prompt
 from database import db, Book
 from forms import BookForm
 from functions.book import *
@@ -59,11 +61,11 @@ def prompt():
     pages = data['pages']
     file = ""
     if gen_type == "qa":
-        file = "Chatbot/output/master_margarita_QA.txt"
+        file = "chatbot/output/master_margarita_QA.txt"
     elif gen_type == "cs":
-        file = "Chatbot/output/master_margarita_summaries.txt"
+        file = "chatbot/output/master_margarita_summaries.txt"
     elif gen_type == "lp":
-        file = "Chatbot/output/master_margarita_summaries.txt"
+        file = "chatbot/output/master_margarita_summaries.txt"
 
     with open(file, "r", encoding='utf-8') as f:
         text = f.read()
@@ -189,10 +191,9 @@ def generate_bagrut_qa():
         if not book:
             return jsonify({"error": "Book not found"}), 404
 
-        summary_file_path, qa_file_path, bagrut_qa_file_path = generate_chapter_summaries_and_qa(
+        summary_file_path, qa_file_path, bagrut_qa_file_path = generate_chapter_summaries_plotPoints_bagrutQnA(
             book_name=book.file_name,
             book_chapters=book_chapters,
-            chapter_names=chapter_names
         )
 
         return jsonify({
