@@ -62,6 +62,7 @@ def execute_prompt(prompt):
 
 def generate_plot_points(book_name, chapter_name):
 
+    chapter_list = get_chapter_list(book_name)
     page_content = find_chapter(book_name, chapter_name, chapter_list)
 
     plot_points_prompt = build_plot_points_prompt(book_name, chapter_name, page_content)

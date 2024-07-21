@@ -2,9 +2,7 @@ from flask import Flask, request, url_for, redirect, get_flashed_messages, sessi
 from flask import render_template
 from flask_cors import CORS, cross_origin
 
-from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_and_qa
-from chatbot.responses.lesson_plan import lesson_plan_prompt
-from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_plotPoints_bagrutQnA
+from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_bagrutQnA
 from chatbot.responses.lesson_plan import lesson_plan_prompt
 from database import db, Book
 from forms import BookForm
@@ -45,7 +43,7 @@ def main_page():  # put application's code here
 
 
 @app.route('/books')
-@cross_origin()
+@cross_origin
 def books():
     b = Book.query.all()
     # print(b)
@@ -53,8 +51,8 @@ def books():
     return jsonify(b)
 
 
+@cross_origin
 @app.route('/prompt', methods=['POST'])
-@cross_origin()
 def prompt():
     data = request.get_json()
     gen_type = data['type']
@@ -76,8 +74,8 @@ def prompt():
     return jsonify(text)
 
 
+@cross_origin
 @app.route('/get_page', methods=['POST'])
-@cross_origin()
 def change_chapter():
     data = request.get_json()
     page = data['page']
@@ -137,7 +135,7 @@ def plot_points():
 
     result = generate_plot_points(book.file_name, chapter_name)
 
-    return jsonify({'result': result})
+    return jsonify({'result': result[0]})
 
 
 @cross_origin
@@ -166,48 +164,9 @@ def generate_lesson_plan():
     return jsonify({'result': result})
 
 
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-
-
-@app.route('/generate_bagrut_qa', methods=['POST'])
-@cross_origin()
-def generate_bagrut_qa():
-    try:
-        data = request.get_json()
-        book_id = data['book_id']
-        book_chapters = data['chapters']
-        chapter_names = data['chapter_names']
-
-        # Debug logging
-        logging.debug(f"Received data: {data}")
-
-        # Fetch book details
-        book = Book.query.filter_by(id=book_id).first()
-
-        # Check if book exists
-        if not book:
-            return jsonify({"error": "Book not found"}), 404
-
-        summary_file_path, qa_file_path, bagrut_qa_file_path = generate_chapter_summaries_plotPoints_bagrutQnA(
-            book_name=book.file_name,
-            book_chapters=book_chapters,
-        )
-
-        return jsonify({
-            'summary_file_path': summary_file_path,
-            'qa_file_path': qa_file_path,
-            'bagrut_qa_file_path': bagrut_qa_file_path
-        })
-    except Exception as e:
-        logging.error(f"Error occurred: {e}", exc_info=True)
-        return jsonify({"error": "Internal Server Error"}), 500
-
-
+@cross_origin
 @app.route('/list_books', methods=['GET'])
-@cross_origin()
 def list_books():
     books = Book.query.all()
     books_list = [{"id": book.id, "title": book.title} for book in books]
