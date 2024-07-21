@@ -29,8 +29,6 @@ def get_possible_chapter_list(book_name):
         return " ".join(text)
 
 
-
-
 def find_chapter(book_name, chapter_name, chapter_list: list):
     if get_chapter(book_name, chapter_name) is not None:
         return get_chapter(book_name, chapter_name).chapter_text
@@ -49,8 +47,9 @@ def find_chapter(book_name, chapter_name, chapter_list: list):
                     break
         for k, v in chapters.items():
             print(f"chapter {k} is at {v}")
-        if chapters[chapter_name] == -1:
-            return "Chapter not found"
+
+        if chapters[chapter_name] == -1 or chapters[chapter_name] == 0:
+            return None  # chapter not found
 
         index = chapter_list.index(chapter_name)
 
@@ -61,7 +60,7 @@ def find_chapter(book_name, chapter_name, chapter_list: list):
             end = len(pdf.pages) - 1
         elif end <= 0:
             end = index + 5
-        print(f"Extracting from {start} to {end}")
+        print(f"Extracting {chapter_name} ({chapters[chapter_name]}) from {start} to {end}")
         for i in range(start, end + 1):
             page = pdf.pages[i].extract_text()
             chapter_text += page + " "
