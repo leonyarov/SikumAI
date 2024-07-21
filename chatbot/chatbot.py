@@ -34,27 +34,30 @@ def execute_prompt(prompt):
         """
     if get_prompt(prompt) is not None:
         return get_prompt(prompt).response
-    print(f"Executing prompt {prompt[:20]}...")
     google_api_key = os.getenv('GOOGLE_API_KEY')
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
     params = {"key": google_api_key}
+    tries, max_tries = 0, 3
     response = requests.post(url, headers=headers, params=params, json=payload)
-    if response.status_code == 200:
+    while tries < max_tries:
+        print(f"({tries+1}) Executing prompt {prompt[:40]}...")
         try:
-            summary = response.json()['candidates'][0]['content']['parts'][0]['text']
-            save_prompt(prompt, summary)
-            logging.debug(f"API Response:{summary}")
-            return summary
+            if response.status_code == 200:
+                summary = response.json()['candidates'][0]['content']['parts'][0]['text']
+                save_prompt(prompt, summary)
+                logging.debug(f"API Response:{summary}")
+                return summary
+            else:
+                response = requests.post(url, headers=headers, params=params, json=payload)
+                tries += 1
+                continue
         except:
             err_msg = response.text
             logging.error(f"API Response:{err_msg}")
             print(response.json())
-    else:
-        err_msg = response.text
-        # save_prompt(prompt, err_msg)
-        return "Error"
+    return "Could not get answer from API, try again later"
 
 
 def generate_plot_points(book_name, chapter_name, chapter_list):

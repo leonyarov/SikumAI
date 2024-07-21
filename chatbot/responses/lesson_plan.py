@@ -42,6 +42,8 @@ def encourage_writing(chapter):
 def lesson_plan_prompt(chapter, book_name):
     chapter_list = get_chapter_list(book_name)
     chapter_text = find_chapter(chapter_name=chapter, book_name=book_name, chapter_list=chapter_list)
+    if chapter_text is None:
+        return LessonPlan(reading="Chapter not found try another", discussion="Chapter not found another", bagrut="Chapter not found try another", writing="Chapter not found try another", book_name=book_name)
     rc = reading_comprehension(chapter_text)
     dt = discussion_text(chapter_text)
     bq = bagrut_questions(chapter_text)

@@ -1,6 +1,5 @@
-import os
-
 import pdfplumber
+import os
 
 from functions.prompt_caching import get_chapter, save_chapter
 
@@ -48,8 +47,9 @@ def find_chapter(book_name, chapter_name, chapter_list: list):
                     break
         for k, v in chapters.items():
             print(f"chapter {k} is at {v}")
-        if chapter_name not in chapters or chapters[chapter_name] == -1:
-            return "Chapter not found"
+
+        if chapters[chapter_name] == -1 or chapters[chapter_name] == 0:
+            return None  # chapter not found
 
         index = chapter_list.index(chapter_name)
 
@@ -60,7 +60,7 @@ def find_chapter(book_name, chapter_name, chapter_list: list):
             end = len(pdf.pages) - 1
         elif end <= 0:
             end = index + 5
-        print(f"Extracting from {start} to {end}")
+        print(f"Extracting {chapter_name} ({chapters[chapter_name]}) from {start} to {end}")
         for i in range(start, end + 1):
             page = pdf.pages[i].extract_text()
             chapter_text += page + " "
