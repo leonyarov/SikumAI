@@ -1,6 +1,7 @@
 import uuid
-from flask_sqlalchemy import SQLAlchemy
 from dataclasses import dataclass
+
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
@@ -37,13 +38,15 @@ class Book(db.Model):
             'file_name': self.file_name
         }
 
-    def __init__(self, author, title, pages, short_text=None, msdn=None, image="book.jpg"):
+    def __init__(self, author, title, pages, short_text=None, msdn=None, image="book.jpg",
+                 file_name=None):
         self.author = author
         self.title = title
         self.pages = pages
         self.short_text = short_text
         self.msdn = msdn
         self.image = image
+        self.file_name = file_name
 
 
 class PlotPoint(db.Model):
@@ -64,7 +67,8 @@ class PlotPoint(db.Model):
         return f"PlotPoint('{self.id}', chapter {self.chapter_number}: '{self.chapter_name}')"
 
     def __init__(self, book_id, death_and_tragic_events=None, decisions=None, conflicts=None,
-                 character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None, chapter_summary=None, chapter_number=0, chapter_name=None):
+                 character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None,
+                 chapter_summary=None, chapter_number=0, chapter_name=None):
         self.book_id = book_id
         self.death_and_tragic_events = death_and_tragic_events
         self.decisions = decisions
@@ -123,14 +127,12 @@ class BookChapter(db.Model):
 
 @dataclass
 class LessonPlan(db.Model):
-
     id: str
     book_name: str
     reading: str
     discussion: str
     bagrut: str
     writing: str
-
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     book_name = db.Column(db.String(100), nullable=False)
@@ -148,3 +150,31 @@ class LessonPlan(db.Model):
 
     def __repr__(self):
         return f"LessonPlan('{self.id}', '{self.book_name}')"
+
+
+class BagrutAnswer(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    question_id = db.Column(db.String(36), db.ForeignKey('bagrut_question.id'), nullable=False)
+    answer = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"BagrutAnswer('{self.id}', '{self.answer}')"
+
+    def __init__(self, question_id, answer):
+        self.question_id = question_id
+        self.answer = answer
+
+
+class BagrutQuestion(db.Model):
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    book_id = db.Column(db.String(36), db.ForeignKey('book.id'), nullable=False)
+    chapter_name = db.Column(db.String(100), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"BagrutQuestion('{self.id}', '{self.chapter_name}', '{self.question}')"
+
+    def __init__(self, book_id, chapter_name, question):
+        self.book_id = book_id
+        self.chapter_name = chapter_name
+        self.question = question

@@ -1,21 +1,22 @@
-import logging
-from flask import Flask, flash, request, url_for, redirect, get_flashed_messages, session, jsonify
+from flask import Flask, request, url_for, redirect, get_flashed_messages, session, jsonify, flash
 from flask import render_template
-
-from chatbot.responses.lesson_plan import lesson_plan_prompt
-from forms import BookForm
-from database import db, Book
-from functions.book import *
 from flask_cors import CORS, cross_origin
-from chatbot.chatbot import generate_plot_points, get_chapter_list
-from functions.formatting import chapters_to_list
+from flask_migrate import Migrate
+
+from Chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_summaries_and_qa
+from Chatbot.responses.lesson_plan import lesson_plan_prompt
+from database import db, Book
+from forms import BookForm
+from functions.book import *
 
 app = Flask(__name__, static_url_path="/static")
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+migrate = Migrate(app, db)  # Initialize FLask-Migrate
 
 with app.app_context():
     db.create_all()
@@ -60,11 +61,11 @@ def prompt():
     pages = data['pages']
     file = ""
     if gen_type == "qa":
-        file = "chatbot/output/master_margarita_QA.txt"
+        file = "Chatbot/output/master_margarita_QA.txt"
     elif gen_type == "cs":
-        file = "chatbot/output/master_margarita_summaries.txt"
+        file = "Chatbot/output/master_margarita_summaries.txt"
     elif gen_type == "lp":
-        file = "chatbot/output/master_margarita_summaries.txt"
+        file = "Chatbot/output/master_margarita_summaries.txt"
 
     with open(file, "r", encoding='utf-8') as f:
         text = f.read()
@@ -86,6 +87,32 @@ def change_chapter():
     return jsonify(text)
 
 
+@app.route('/add_book', methods=['POST'])
+def add_book():
+    form = BookForm()
+    if form.validate_on_submit():
+        new_book = Book(
+            author=form.author.data,
+            title=form.title.data,
+            pages=form.pages.data,
+            short_text=form.short_text.data,
+            msdn=form.msdn.data,
+            image=form.image.data,
+            file_name=form.file_name.data  # Ensure this line is present
+        )
+        try:
+            db.session.add(new_book)
+            db.session.commit()
+            flash("Book added successfully", 'success')
+        except Exception as e:
+            flash("Book not uploaded", 'danger')
+            db.session.rollback()
+    else:
+        flash("Book unvalidated", 'danger')
+
+    return redirect("/")
+
+
 @app.route('/set_book', methods=['POST'])
 def set_book():
     book_id = request.form['book']
@@ -93,33 +120,6 @@ def set_book():
     session['book'] = book.to_dict()
     return redirect("/")
 
-
-@app.route('/add_book', methods=['POST'])
-def add_book():
-    form = BookForm()
-    if form.validate_on_submit():
-        # Create a new book
-        new_book = Book(
-            author=form.author.data,
-            title=form.title.data,
-            pages=form.pages.data,
-            short_text=form.short_text.data,
-            msdn=form.msdn.data,
-            image=form.image.data
-        )
-        try:
-            db.session.add(new_book)
-            db.session.commit()
-        except Exception as e:
-            flash("book not uploaded", 'danger')
-            db.session.rollback()
-            db.session.flush()
-            flash("book in db", "danger")
-    else:
-        flash("book unvalidated", 'danger')
-        # Add and commit the new book to the database
-        # Redirect to the list of books
-    return redirect("/")
 
 @cross_origin
 @app.route('/generate_plot_points', methods=['POST'])
@@ -135,6 +135,7 @@ def generate_plot_points_route():
     logging.debug(f"Result: {result}")
     return jsonify({'result': result})
 
+
 @cross_origin
 @app.route("/get_chapters", methods=['POST'])
 def get_chapters():
@@ -143,6 +144,7 @@ def get_chapters():
     book = Book.query.filter_by(id=book_id).first()
     chapters = get_chapter_list(book_name=book.file_name)
     return jsonify(chapters)
+
 
 @cross_origin
 @app.route('/generate_lesson_plan', methods=['POST'])
@@ -158,6 +160,56 @@ def generate_lesson_plan():
         result = "Error generating lesson plan"
 
     return jsonify({'result': result})
+
+
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+
+@app.route('/generate_bagrut_qa', methods=['POST'])
+@cross_origin()
+def generate_bagrut_qa():
+    try:
+        data = request.get_json()
+        book_id = data['book_id']
+        book_chapters = data['chapters']
+        chapter_names = data['chapter_names']
+
+        # Debug logging
+        logging.debug(f"Received data: {data}")
+
+        # Fetch book details
+        book = Book.query.filter_by(id=book_id).first()
+
+        # Check if book exists
+        if not book:
+            return jsonify({"error": "Book not found"}), 404
+
+        summary_file_path, qa_file_path, bagrut_qa_file_path = generate_chapter_summaries_and_qa(
+            book_name=book.file_name,
+            book_chapters=book_chapters,
+            chapter_names=chapter_names
+        )
+
+        return jsonify({
+            'summary_file_path': summary_file_path,
+            'qa_file_path': qa_file_path,
+            'bagrut_qa_file_path': bagrut_qa_file_path
+        })
+    except Exception as e:
+        logging.error(f"Error occurred: {e}", exc_info=True)
+        return jsonify({"error": "Internal Server Error"}), 500
+
+
+@app.route('/list_books', methods=['GET'])
+@cross_origin()
+def list_books():
+    books = Book.query.all()
+    books_list = [{"id": book.id, "title": book.title} for book in books]
+    return jsonify(books_list)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,5 +1,5 @@
-from functions.book import get_book_chapter, get_possible_chapter_list
-from database import PlotPoint, db
+from functions.book import get_possible_chapter_list
+
 
 def build_prompt(book_name, chapter_name, page_number, page_content, next_page_content, previous_summaries):
     """
@@ -80,4 +80,45 @@ def build_plot_points_prompt(book_name, chapter_name, page_content):
               f"{page_content}\n\n"
               "Include the following categories: death and tragic events, decisions, conflicts, character development, "
               "symbolism and imagery, foreshadowing, setting description, and a brief chapter summary.")
+    return prompt
+
+
+def build_bagrut_questions_prompt(book_name, chapter_name, detailed_summary):
+    """
+    Builds a prompt for generating Bagrut-level questions based on a chapter summary.
+
+    Parameters:
+    book_name (str): The name of the book.
+    chapter_name (str): The name of the chapter.
+    detailed_summary (str): The detailed summary of the chapter.
+
+    Returns:
+    str: The constructed prompt for the language model to generate Bagrut-level questions.
+    """
+    prompt = (f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', "
+              "generate Bagrut-level educational questions. Focus on character motivations, plot implications, "
+              "thematic elements, and any significant narrative techniques used in this chapter.\n\n"
+              f"Detailed Summary:\n{detailed_summary}\n")
+    return prompt
+
+
+def build_bagrut_answers_prompt(book_name, chapter_name, detailed_summary, questions):
+    """
+    Builds a prompt for generating Bagrut-level answers based on questions and a chapter summary.
+
+    Parameters:
+    book_name (str): The name of the book.
+    chapter_name (str): The name of the chapter.
+    detailed_summary (str): The detailed summary of the chapter.
+    questions (str): The Bagrut-level questions generated previously.
+
+    Returns:
+    str: The constructed prompt for the language model to generate Bagrut-level answers.
+    """
+    prompt = (f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', "
+              "and the following Bagrut-level questions, generate detailed answers. "
+              "Focus on character motivations, plot implications, thematic elements, "
+              "and any significant narrative techniques used in this chapter.\n\n"
+              f"Detailed Summary:\n{detailed_summary}\n\n"
+              f"Questions:\n{questions}\n")
     return prompt

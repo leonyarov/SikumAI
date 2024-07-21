@@ -1,9 +1,7 @@
-from flask_bootstrap import Bootstrap
+# forms.py
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, IntegerField
 from wtforms.validators import DataRequired
-
-from database import Book
 
 
 class BookForm(FlaskForm):
@@ -13,4 +11,5 @@ class BookForm(FlaskForm):
     short_text = StringField('Short Text')
     msdn = StringField('MSDN')
     image = StringField('Image')
+    file_name = StringField('File Name', validators=[DataRequired()])
     submit = SubmitField('Submit')
