@@ -29,30 +29,6 @@ def get_possible_chapter_list(book_name):
         return " ".join(text)
 
 
-# def find_chapter(book_name, chapter_name, chapter_list):
-#     print(f"Requesting chapter {chapter_name} from {book_name} with {len(chapter_list)} chapters")
-#     if get_chapter(book_name, chapter_name) is not None:
-#         return get_chapter(book_name, chapter_name).chapter_text
-#
-#     pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
-#     chapter_text = ""
-#     chapters = dict()
-#     with pdfplumber.open(pdf_path) as pdf:
-#         print(f"Extracting from {book_name} with {len(pdf.pages)} pages")
-#         for i, page in enumerate(pdf.pages):
-#             chapter_text += page.extract_text()
-#             if chapter_list[1] in page.extract_text():
-#                 chapter_text += page.extract_text().split(chapter_list[1])[0]
-#                 chapters[chapter_list[0]] = chapter_text
-#                 chapter_list.pop(0)
-#                 chapter_text = ""
-#
-#                 if len(chapter_list) == 0:
-#                     save_chapter(book_name, chapters[chapter_name], chapter_name)
-#                     return chapters[chapter_name]
-#         print(f"saving {chapter_name} out of {len(chapters)}")
-#         save_chapter(book_name, chapters[chapter_name], chapter_name)
-#         return chapters[chapter_name]
 
 
 def find_chapter(book_name, chapter_name, chapter_list: list):

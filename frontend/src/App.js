@@ -17,19 +17,22 @@ import {
 import {useEffect, useState} from "react";
 import axios from "axios";
 import LessonPlan from "./PrompResults/LessonPlan";
+import Markdown from "react-markdown";
 
 function App() {
 
     const [selectedBook, setSelectedBook] = useState(null)
     const [books, setBooks] = useState([])
     const [bookText, setBookText] = useState('')
-    const [bookPage, setBookPage] = useState(1)
+    const [bookChapter, setBookChapter] = useState(1)
     const [bookChapters, setBookChapters] = useState([])
 
     const [chapter, setChapter] = useState("")
     const [requiredContent, setRequiredContent] = useState('qa')
     const [promptResponse, setPromptResponse] = useState("")
+
     const [loadingPrompt, setLoadingPrompt] = useState(false)
+    const [chapterLoading, setChapterLoading] = useState(false)
 
     useEffect(() => {
         axios.get('http://127.0.0.1:5000/books').then(response => {
@@ -39,18 +42,23 @@ function App() {
 
     useEffect(() => {
         if (selectedBook) {
+            setChapterLoading(true)
             axios.post('http://127.0.0.1:5000/get_page', {
                 book: selectedBook.id,
-                page: bookPage
+                page: bookChapter
             }).then(response => {
                 setBookText(response.data)
+            }).finally(() => {
+                setChapterLoading(false)
             })
         }
-    }, [bookPage, selectedBook]);
+    }, [bookChapter, selectedBook]);
+
     useEffect(() => {
         if (!selectedBook) return
         axios.post('http://127.0.0.1:5000/get_chapters', {'book_id': selectedBook.id}).then(response => {
             setBookChapters(response.data)
+        }).finally(() => {
         })
     }, [selectedBook])
 
@@ -60,15 +68,6 @@ function App() {
             return
         }
         setLoadingPrompt(true)
-        // axios.post('http://127.0.0.1:5000/prompt', {
-        //     book: selectedBook.id,
-        //     pages: pages,
-        //     type: requiredContent
-        // }).then(response => {
-        //     setPromptResponse(response.data)
-        // }).catch(error => {
-        //     setPromptResponse("Error")
-        // })
 
         axios.post('http://127.0.0.1:5000/generate_lesson_plan', {
             'book_id': selectedBook.id,
@@ -77,10 +76,14 @@ function App() {
             setPromptResponse(response.data)
 
         }).catch(error => {
-          console.log("error")
+            console.log("error")
         }).finally(() => {
             setLoadingPrompt(false)
         })
+    }
+
+    function HandleGetChapter(number) {
+        axios.post()
     }
 
     return (
@@ -156,18 +159,20 @@ function App() {
 
                 <Typography variant={'h3'}>
                     Read The Book
+                    {chapterLoading && <CircularProgress sx={{mx: 1}}/>}
                 </Typography>
                 <Box mb={2}>
                     <Paper>
                         <Box p={2}>
-                            <pre>
-
-                            <Typography minHeight={100} variant={'body2'} overflowY={'scroll'}>
+                            <Typography minHeight={100} maxHeight={500} variant={'body2'} overflow={'auto'}
+                                        overflowX={'none'}>
+                <pre>
                                 {bookText}
+                </pre>
                             </Typography>
-                            </pre>
                             <Box display={'flex'} justifyContent={'center'}>
-                                <Pagination count={50} shape={'rounded'} onChange={(event, page) => setBookPage(page)}/>
+                                <Pagination count={50} shape={'rounded'}
+                                            onChange={(event, page) => setBookChapter(page)}/>
                             </Box>
                         </Box>
                     </Paper>

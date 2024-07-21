@@ -83,8 +83,13 @@ def change_chapter():
     page = data['page']
     book_id = data['book']
     book = Book.query.filter_by(id=book_id).first()
-    text = get_book_chapter(book.file_name, page)
-    return jsonify(text)
+    chapters = get_chapter_list(book.file_name)
+
+    if page >= len(chapters):
+        return jsonify("End of book")
+
+    chapter = find_chapter(book_name=book.file_name, chapter_name=chapters[page], chapter_list=chapters)
+    return jsonify(chapter)
 
 
 @app.route('/add_book', methods=['POST'])
