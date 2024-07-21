@@ -1,14 +1,16 @@
+import logging
 import os
-import json
+import re
+
 import requests
 from dotenv import load_dotenv
 
+from Chatbot.prompt_generating import build_bagrut_answers_prompt, build_chapter_list_prompt, build_plot_points_prompt, \
+    build_bagrut_questions_prompt
+from database import BagrutQuestion, BagrutAnswer, PlotPoint, db
+from functions.book import find_chapter
 from functions.formatting import chapters_to_list
 from functions.prompt_caching import get_prompt, save_prompt
-from functions.book import get_book_chapter, get_possible_chapter_list, find_chapter
-from chatbot.prompt_generating import build_prompt, build_qa_prompt, build_plot_points_prompt, build_chapter_list_prompt
-from database import db, PlotPoint
-import logging
 
 # Load environment variables from ..env file
 load_dotenv()
@@ -78,6 +80,8 @@ def generate_plot_points(book_name, chapter_name, chapter_list):
 
     if "error" in plot_points_response:
         return plot_points_response["error"]
+
+    print(plot_points_response)
 
     # Assuming the plot_points_response is a structured text or JSON that we can parse
     plot_points_data = parse_plot_points_response(plot_points_response)
@@ -151,61 +155,44 @@ def parse_plot_points_response(response):
     # ToDo - Save to DataBase
 
 
-def generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names):
-    """
-        Generates detailed summaries and educational Q&A for each chapter of a book.
-
-        Parameters:
-        book_name (str): The name of the book.
-        book_chapters (list): A list of chapter numbers to process.
-        chapter_names (list): A list of chapter names corresponding to the chapter numbers.
-
-        Returns:
-        tuple: Paths to the summary and Q&A output files.
-        """
-    chapter_summaries = []
-    previous_summaries = []
+def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
     questions_and_answers = []
 
-    for i, chapter_number in enumerate(book_chapters):
-        chapter_content = get_book_chapter(book_name, chapter_number)
-        next_chapter_content = get_book_chapter(book_name, book_chapters[i + 1]) if i < len(book_chapters) - 1 else ""
-        detailed_summary_prompt = build_prompt(book_name, chapter_names[i], chapter_number, chapter_content,
-                                               next_chapter_content, previous_summaries)
-        detailed_summary = execute_prompt(detailed_summary_prompt)
-        chapter_summaries.append(detailed_summary)
-        previous_summaries.append(detailed_summary)
+    # Generate Bagrut-level questions
+    bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data)
+    bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
+    bagrut_questions = re.split(r'\n+', bagrut_questions_response)
 
-        qa_prompt = build_qa_prompt(book_name, chapter_names[i], detailed_summary)
-        qa_content = execute_prompt(qa_prompt)
-        questions_and_answers.append(qa_content)
+    for question in bagrut_questions:
+        if question.strip():
+            bagrut_question = BagrutQuestion(book_id=book_name, chapter_name=chapter_name, question=question)
+            db.session.add(bagrut_question)
+            db.session.commit()
 
-    # Write summaries to the output file
-    summary_file_name = f"{book_name}_summaries.txt"
-    summary_file_path = os.path.join("chatbot", "output", summary_file_name)
-    with open(summary_file_path, "w") as summary_file:
-        for i, summary in enumerate(chapter_summaries):
-            summary_file.write(f"Summary of Chapter {book_chapters[i]} - {chapter_names[i]}:\n{summary}\n\n")
+            # Generate Bagrut answers
+            bagrut_answers_prompt = build_bagrut_answers_prompt(book_name, chapter_name, plot_points_data, question)
+            bagrut_answers_response = execute_prompt(bagrut_answers_prompt)
+            bagrut_answer = BagrutAnswer(question_id=bagrut_question.id, answer=bagrut_answers_response)
+            db.session.add(bagrut_answer)
+            db.session.commit()
 
-    # Write Q&A to the output file
-    qa_file_name = f"{book_name}_QA.txt"
-    qa_file_path = os.path.join("chatbot", "output", qa_file_name)
-    with open(qa_file_path, "w") as qa_file:
-        for i, qa in enumerate(questions_and_answers):
-            qa_file.write(f"Q&A for Chapter {book_chapters[i]} - {chapter_names[i]}:\n{qa}\n\n")
+            questions_and_answers.append({
+                "question": question,
+                "answer": bagrut_answers_response
+            })
 
-    return summary_file_path, qa_file_path
+    return questions_and_answers
 
 
-# Adjust the example usage accordingly
-'''
-book_name = "master_margarita"
-book_chapters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-chapter_names = ["Never Talk to Strangers", "Pontius Pilate", "The Seventh Proof", "The Pursuit",
-                 "The Affair at Griboyedov",
-                 "Schizophrenia", "The Haunted Flat", "A Duel between Professor and Poet", "Koroviev's Tricks",
-                 "News from Yalta"]
-summary_file_path, qa_file_path = generate_chapter_summaries_and_qa(book_name, book_chapters, chapter_names)
-print("Summaries saved to:", summary_file_path)
-print("Q&A saved to:", qa_file_path)
-'''
+def generate_chapter_summaries_and_qa(book_name, chapter):
+    """
+    Generates summaries, Plot Points & Bagrut Style Questions and Answers questions
+
+    Parameters:
+    book_name (str): The name of the book.
+    chapter (tuple): A tuple containing chapter number and chapter title.
+
+    Returns:
+    dict: A dictionary containing chapter summaries, questions and answers, and Bagrut questions and answers.
+    """
+    pass

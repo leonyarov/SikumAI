@@ -1,8 +1,7 @@
-# Lesson Plan builder and chatbot invocation
-from chatbot.chatbot import execute_prompt, get_chapter_list
+# Lesson Plan builder and Chatbot invocation
+from Chatbot.chatbot import execute_prompt, get_chapter_list
 from database import LessonPlan
 from functions.book import find_chapter
-from functions.formatting import applyXML, wrapXML
 from functions.prompt_caching import save
 
 
@@ -18,7 +17,7 @@ def discussion_text(chapter):
     return result
 
 
-def bagrut_questions(chapter ):
+def bagrut_questions(chapter):
     prompt = (f"Write 2 questions that can be used for a Bagrut exam.\n"
               f"Example: 'Characters in the play may feel towards each other empathy, compassion and a desire to help or behave hypocritically"
               f" and flatteringly, with hostility and ignoring and even malice. "
@@ -30,13 +29,14 @@ def bagrut_questions(chapter ):
 
 
 def encourage_writing(chapter):
-    prompt = (f"Write a question that can be used to give to a class of students to write an long answer to. involve one or two charecters: \n")
-              # f"1. A letter to one of the characters [character name], "
-              # f"2. Fictional possible conversation between two characters [character 1, character 2], "
-              # f"3. Possible diary entry of the main character, "
-              # f"4. Personal summary of [character], "
+    prompt = (
+        f"Write a question that can be used to give to a class of students to write an long answer to. involve one or two charecters: \n")
+    # f"1. A letter to one of the characters [character name], "
+    # f"2. Fictional possible conversation between two characters [character 1, character 2], "
+    # f"3. Possible diary entry of the main character, "
+    # f"4. Personal summary of [character], "
     result = execute_prompt(prompt + chapter)
-    return  result
+    return result
 
 
 def lesson_plan_prompt(chapter, book_name):
@@ -51,6 +51,3 @@ def lesson_plan_prompt(chapter, book_name):
     lp = LessonPlan(reading=rc, discussion=dt, bagrut=bq, writing=eq, book_name=book_name)
     save(lp)
     return lp
-
-
-
