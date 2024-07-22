@@ -140,11 +140,39 @@ def parse_plot_points_response(response):
 
 
 def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
-    questions_and_answers = []
-
     # Generate Bagrut-level questions
-    bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data)
-    # ToDo - add real Bagrut Examples
+    questions_and_answers = []
+    bagrut_examples = [
+        {
+            "question": "Choose a short story you studied that centers on the human need for understanding, warmth, love, or comfort. What need is expressed in the story you chose, and how does it affect the behavior of a central character in the story? Explain and illustrate your answer.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Explain and illustrate one way in which this human need is expressed in the story.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Choose a pivotal event that changes the course of a central character's life in a short story you studied, describe how the character copes with this event, and explain why you think it is pivotal in their life.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Explain and illustrate one way in which the character's coping with the event is expressed in the story.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Describe the physical journey of the protagonist in the story, and explain what mental journey they undergo as a result of their physical journey.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Choose a character from the reading book you studied that evoked empathy in you and a character that evoked rejection. Describe each of these characters and explain what about them evoked these feelings in you.",
+            "type": "open-ended"
+        },
+        {
+            "question": "What insights about human nature and/or society arise from the reading book you studied? Explain your answer and base it on the relationships between the characters and the ending of the reading book.",
+            "type": "open-ended"
+        }
+    ]
+    bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data, bagrut_examples)
 
     bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
     bagrut_questions = re.split(r'\n+', bagrut_questions_response)
@@ -178,19 +206,13 @@ def generate_chapter_bagrutQnA(book_name, chapter):
     dict: A dictionary containing chapter summaries, plot points, questions and answers, and Bagrut questions and answers.
     """
 
-    # Step 2: Generate plot points
+    # Generate plot points
     plot_point, plot_points_data = generate_plot_points(book_name, chapter)
 
     if plot_point is None:
         return plot_points_data  # Return the error message
 
-    # Step 3: Generate Bagrut-style questions and answers
+    # Generate Bagrut-style questions and answers using plot points
     questions_and_answers = generate_bagrut_qa(book_name, chapter, plot_points_data)
 
-    result = {
-        "chapter_summary": plot_points_data['chapter_summary'],
-        "plot_points": plot_points_data,
-        "bagrut_qa": questions_and_answers
-    }
-
-    return result
+    return questions_and_answers
