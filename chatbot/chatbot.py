@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from chatbot.prompt_generating import build_bagrut_answers_prompt, build_chapter_list_prompt, build_plot_points_prompt, \
     build_bagrut_questions_prompt
-from database import PlotPoint
+from database import PlotPoint, BagrutQuestion, BagrutAnswer
 from functions.book import find_chapter
 from functions.formatting import chapters_to_list
 from functions.prompt_caching import get_prompt, save_prompt, save
@@ -144,22 +144,20 @@ def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
 
     # Generate Bagrut-level questions
     bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data)
+    # ToDo - add real Bagrut Examples
+
     bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
     bagrut_questions = re.split(r'\n+', bagrut_questions_response)
 
     for question in bagrut_questions:
         if question.strip():
-            # bagrut_question = BagrutQuestion(book_id=book_name, chapter_name=chapter_name, question=question)
-            # db.session.add(bagrut_question)
-            # db.session.commit()
-
+            bagrut_question = BagrutQuestion(book_id=book_name, chapter_name=chapter_name, question=question)
+            # ToDo -  save(bagrut_question)
             # Generate Bagrut answers
             bagrut_answers_prompt = build_bagrut_answers_prompt(book_name, chapter_name, plot_points_data, question)
             bagrut_answers_response = execute_prompt(bagrut_answers_prompt)
-            # bagrut_answer = BagrutAnswer(question_id=bagrut_question.id, answer=bagrut_answers_response)
-            # db.session.add(bagrut_answer)
-            # db.session.commit()
-
+            bagrut_answer = BagrutAnswer(question_id=bagrut_question.id, answer=bagrut_answers_response)
+            # ToDo -  save(bagrut_answer)
             questions_and_answers.append({
                 "question": question,
                 "answer": bagrut_answers_response
@@ -179,11 +177,9 @@ def generate_chapter_bagrutQnA(book_name, chapter):
     Returns:
     dict: A dictionary containing chapter summaries, plot points, questions and answers, and Bagrut questions and answers.
     """
-    # Step 1: Get the chapter list
-    chapter_list = get_chapter_list(book_name)
 
     # Step 2: Generate plot points
-    plot_point, plot_points_data = generate_plot_points(book_name, chapter, chapter_list)
+    plot_point, plot_points_data = generate_plot_points(book_name, chapter)
 
     if plot_point is None:
         return plot_points_data  # Return the error message
