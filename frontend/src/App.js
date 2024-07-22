@@ -22,6 +22,7 @@ import ChapterSummary from "./PrompResults/ChapterSummary";
 import {Document, Page} from "react-pdf";
 import {pdfjs} from 'react-pdf';
 import {Api, AutoStories, Book, LibraryBooks, Textsms} from "@mui/icons-material";
+import QnA from "./PrompResults/QnA";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -270,6 +271,9 @@ function App() {
                                 }
                                 {requiredContent === 'cs' && promptResponse.result &&
                                     <ChapterSummary summary={promptResponse.result}/>
+                                }
+                                {requiredContent === 'qa' && promptResponse.result &&
+                                    <QnA/>
                                 }
 
                             </Typography>

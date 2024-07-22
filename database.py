@@ -95,7 +95,7 @@ class PlotPoint(db.Model):
         self.foreshadowing = foreshadowing
         self.setting_description = setting_description
         self.chapter_summary = chapter_summary
-        # No need to set `id` here; it will be handled by SQLAlchemy
+
 
 
 class Question(db.Model):

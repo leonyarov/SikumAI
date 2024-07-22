@@ -134,6 +134,19 @@ def plot_points():
 
     return jsonify({'result': result[0]})
 
+@cross_origin
+@app.route('/generate_questions', methods=['POST'])
+def questions():
+    data = request.get_json()
+    book_id = data['book_id']
+    chapter_name = data['chapter_name']
+
+    book = Book.query.filter_by(id=book_id).first()
+
+    result = generate_chapter_bagrutQnA(book.file_name, chapter_name)
+
+    return jsonify({'result': result})
+
 
 @cross_origin
 @app.route("/get_chapters", methods=['POST'])
