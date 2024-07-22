@@ -43,7 +43,7 @@ def main_page():  # put application's code here
 
 
 @app.route('/books')
-@cross_origin
+@cross_origin()
 def books():
     b = Book.query.all()
     # print(b)
@@ -51,7 +51,7 @@ def books():
     return jsonify(b)
 
 
-@cross_origin
+@cross_origin()
 @app.route('/prompt', methods=['POST'])
 def prompt():
     data = request.get_json()
@@ -68,13 +68,10 @@ def prompt():
     with open(file, "r", encoding='utf-8') as f:
         text = f.read()
 
-    # text = text.replace('\r', '')
-    # text = text.replace('\n\n\n', '\n')
-    # text = text.replace('\n\n', '\n')
     return jsonify(text)
 
 
-@cross_origin
+@cross_origin()
 @app.route('/get_page', methods=['POST'])
 def change_chapter():
     data = request.get_json()
@@ -144,8 +141,11 @@ def get_chapters():
     data = request.get_json()
     book_id = data['book_id']
     book = Book.query.filter_by(id=book_id).first()
-    chapters = get_chapter_list(book_name=book.file_name)
-    return jsonify(chapters)
+    try:
+        chapters = get_chapter_list(book_name=book.file_name)
+        return jsonify(chapters)
+    except:
+        return jsonify([])
 
 
 @cross_origin
@@ -172,6 +172,14 @@ def list_books():
     books_list = [{"id": book.id, "title": book.title} for book in books]
     return jsonify(books_list)
 
+@cross_origin
+@app.route('/get_book', methods=['POST'])
+def get_book_file():
+    data = request.get_json()
+    book_id = data['book_id']
+    book = Book.query.filter_by(id=book_id).first()
+    return jsonify(book.file_name + '.pdf')
 
 if __name__ == '__main__':
     app.run(debug=True)
+

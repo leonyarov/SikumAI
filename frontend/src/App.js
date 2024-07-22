@@ -1,32 +1,42 @@
 import {
+    Alert,
     Box,
     Button,
-    ButtonBase, CircularProgress,
+    ButtonBase, Chip, CircularProgress,
     Container,
     Divider,
     FormControl,
-    InputLabel,
+    InputLabel, List, ListItem,
     MenuItem,
     Pagination,
     Paper,
-    Select,
+    Select, Skeleton,
     Stack,
-    TextField,
+    TextField, Tooltip,
     Typography
 } from "@mui/material";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import LessonPlan from "./PrompResults/LessonPlan";
-import Markdown from "react-markdown";
 import ChapterSummary from "./PrompResults/ChapterSummary";
+import {Document, Page} from "react-pdf";
+import {pdfjs} from 'react-pdf';
+import {Api, AutoStories, Book, LibraryBooks, Textsms} from "@mui/icons-material";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+).toString();
 
 function App() {
 
     const [selectedBook, setSelectedBook] = useState(null)
     const [books, setBooks] = useState([])
-    const [bookText, setBookText] = useState('')
-    const [bookChapter, setBookChapter] = useState(1)
+    const [bookLink, setBookLink] = useState('')
     const [bookChapters, setBookChapters] = useState([])
+
+    const [pdfPageIndex, setPdfPageIndex] = useState(1)
+    const [pdfPageCount, setPdfPageCount] = useState(0)
 
     const [chapter, setChapter] = useState("")
     const [requiredContent, setRequiredContent] = useState('qa')
@@ -44,16 +54,16 @@ function App() {
     useEffect(() => {
         if (selectedBook) {
             setChapterLoading(true)
-            axios.post('http://127.0.0.1:5000/get_page', {
-                book: selectedBook.id,
-                page: bookChapter
+            axios.post('http://127.0.0.1:5000/get_book', {
+                book_id: selectedBook.id,
             }).then(response => {
-                setBookText(response.data)
+                setBookLink(response.data)
+
             }).finally(() => {
                 setChapterLoading(false)
             })
         }
-    }, [bookChapter, selectedBook]);
+    }, [selectedBook]);
 
     useEffect(() => {
         if (!selectedBook) return
@@ -62,6 +72,10 @@ function App() {
         }).finally(() => {
         })
     }, [selectedBook])
+
+    function onDocumentLoadSuccess({numPages}) {
+        setPdfPageCount(numPages);
+    }
 
     function handleGenerate() {
         if (!selectedBook) {
@@ -96,13 +110,14 @@ function App() {
         <Box bgcolor={'lightgray'} p={0} m={0}>
 
             <Container>
-                <Typography variant={'h2'} gutterBottom>
-                    SikumAI
-                </Typography>
+                <Box display={'flex'} justifyContent={'center'} py={2}>
+
+                    <img width={400} src={'/logo.png'}/>
+                </Box>
 
                 <Box mb={2}>
                     <Typography variant={'h3'}>
-                        Library
+                        Library <LibraryBooks fontSize={'large'} color={'info'}/>
                     </Typography>
                     <Paper elevation={3}>
                         <Box p={2} display={'flex'} gap={2} flexWrap={'wrap'}>
@@ -110,6 +125,8 @@ function App() {
                             {
                                 books.map(item => {
                                     return (
+                                        <Tooltip title={item.title} placement={'top'} sx={{fontSize:30}}>
+
                                         <ButtonBase
                                             onClick={() => {
                                                 setSelectedBook(item)
@@ -124,6 +141,7 @@ function App() {
                                                  alt={"cover"}
                                                  style={{objectFit: "contain", borderRadius: 2}}/>
                                         </ButtonBase>
+                                        </Tooltip>
                                     )
 
                                 })
@@ -133,7 +151,7 @@ function App() {
                 </Box>
 
                 <Typography variant={'h3'}>
-                    Literature Overview
+                    Literature Overview <Book fontSize={'large'} color={'info'}/>
                 </Typography>
                 <Box mb={2}>
                     <Paper elevation={3}>
@@ -146,46 +164,50 @@ function App() {
                                         : <Box width={200} height={180}></Box>
                                 }
 
-                                <Box>
+                                <List dense>
                                     {Object.entries(selectedBook ?? {}).map(([key, value]) => {
-                                        return <>
-                                            <Typography variant={'body2'} fontWeight={'bold'} display={"inline"}>
-                                                {key}:
-                                            </Typography>
-                                            <Typography variant={'body2'}>
+                                        return <ListItem>
+                                            <Chip label={key} size={'small'} sx={{textTransform: 'capitalize', fontWeight:'bold'}}/>
+                                            <Typography display={'inline'} variant={'body2'} sx={{ml: 1}}>
                                                 {value}
                                             </Typography>
-                                        </>
+                                            <br/>
+                                        </ListItem>
                                     })}
-                                </Box>
+                                </List>
                             </Stack>
                         </Box>
                     </Paper>
                 </Box>
 
                 <Typography variant={'h3'}>
-                    Read The Book
+                    Read The Book <AutoStories fontSize={'large'} color={'info'}/>
                     {chapterLoading && <CircularProgress sx={{mx: 1}}/>}
                 </Typography>
                 <Box mb={2}>
                     <Paper>
                         <Box p={2}>
-                            <Typography minHeight={100} maxHeight={500} variant={'body2'} overflow={'auto'}
-                                        overflowX={'none'}>
-                <pre>
-                                {bookText}
-                </pre>
-                            </Typography>
-                            <Box display={'flex'} justifyContent={'center'}>
-                                <Pagination count={50} shape={'rounded'}
-                                            onChange={(event, page) => setBookChapter(page)}/>
-                            </Box>
+                            <Stack  justifyContent={'center'} alignItems={'center'}>
+
+                            <Document file={`http://127.0.0.1:5000/static/books/${bookLink}`}
+                                      onLoadSuccess={onDocumentLoadSuccess}
+                                      error={<Alert severity={'info'}>Could not load PDF</Alert>}
+                                      loading={<Skeleton variant="rectangular" width={500} height={600} />}
+                            >
+                               <Paper elevation={3}>
+                                       <Page pageNumber={pdfPageIndex} renderAnnotationLayer={false} renderTextLayer={false}/>
+                               </Paper>
+                            </Document>
+
+                             <Pagination sx={{my:2}} count={pdfPageCount} shape={'rounded'}
+                                            onChange={(event, page) => setPdfPageIndex(page)}/>
+                            </Stack>
                         </Box>
                     </Paper>
                 </Box>
 
                 <Typography variant={'h3'}>
-                    Generate
+                    Generate <Textsms fontSize={'large'} color={'info'}/>
                 </Typography>
                 <Box mb={1}>
                     <Paper variant={'outlined'} sx={{p: 2}}>
