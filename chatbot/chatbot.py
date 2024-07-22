@@ -10,7 +10,7 @@ from chatbot.prompt_generating import build_bagrut_answers_prompt, build_chapter
 from database import PlotPoint
 from functions.book import find_chapter
 from functions.formatting import chapters_to_list
-from functions.prompt_caching import get_prompt, save_prompt
+from functions.prompt_caching import get_prompt, save_prompt, save
 
 # Load environment variables from ..env file
 load_dotenv()
@@ -22,7 +22,7 @@ def get_chapter_list(book_name):
     return chapters_to_list(result)
 
 
-def execute_prompt(prompt):
+def execute_prompt(prompt, override: bool = False):
     """
         Generates a summary using the Google Language Model API.
 
@@ -32,7 +32,7 @@ def execute_prompt(prompt):
         Returns:
         str: The generated summary from the API.
         """
-    if get_prompt(prompt) is not None:
+    if get_prompt(prompt) is not None and not override:
         return get_prompt(prompt).response
     google_api_key = os.getenv('GOOGLE_API_KEY')
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
@@ -66,20 +66,20 @@ def generate_plot_points(book_name, chapter_name):
     page_content = find_chapter(book_name, chapter_name, chapter_list)
 
     plot_points_prompt = build_plot_points_prompt(book_name, chapter_name, page_content)
-    plot_points_response = execute_prompt(plot_points_prompt)
+    plot_points_response = execute_prompt(plot_points_prompt, override=True)
 
     if "Error" in plot_points_response:
         return None, {"error": plot_points_response}
 
-    print(plot_points_response)
-
-    # Assuming the plot_points_response is a structured text or JSON that we can parse
     plot_points_data = parse_plot_points_response(plot_points_response)
-    print("Parsed Plot Points Data:", plot_points_data)
+
+    # Assuming chapter_number can be derived from chapter_name or needs to be passed as an argument
+    chapter_number = chapter_list.index(chapter_name) + 1 if chapter_name in chapter_list else 0
 
     plot_point = PlotPoint(
         book_name=book_name,
         chapter_name=chapter_name,
+        chapter_number=chapter_number,
         death_and_tragic_events=plot_points_data.get('death_and_tragic_events'),
         decisions=plot_points_data.get('decisions'),
         conflicts=plot_points_data.get('conflicts'),
@@ -89,8 +89,10 @@ def generate_plot_points(book_name, chapter_name):
         setting_description=plot_points_data.get('setting_description'),
         chapter_summary=plot_points_data.get('chapter_summary')
     )
+
     print("PlotPoint Instance:", plot_point)
     print("Plot points generated and saved successfully.")
+    save(plot_point)
     return plot_point, plot_points_data
 
 

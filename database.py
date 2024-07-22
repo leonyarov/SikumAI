@@ -51,7 +51,6 @@ class Book(db.Model):
 
 @dataclass
 class PlotPoint(db.Model):
-
     id: str
     book_name: str
     chapter_name: str
@@ -81,10 +80,13 @@ class PlotPoint(db.Model):
     def __repr__(self):
         return f"PlotPoint('{self.id}', chapter {self.chapter_number}: '{self.chapter_name}')"
 
-    def __init__(self, book_name, death_and_tragic_events=None, decisions=None, conflicts=None,
-                 character_development=None, symbolism_and_imagery=None, foreshadowing=None, setting_description=None,
-                 chapter_summary=None, chapter_number=0, chapter_name=None):
+    def __init__(self, book_name, chapter_name=None, chapter_number=0,
+                 death_and_tragic_events=None, decisions=None, conflicts=None,
+                 character_development=None, symbolism_and_imagery=None,
+                 foreshadowing=None, setting_description=None, chapter_summary=None):
         self.book_name = book_name
+        self.chapter_name = chapter_name
+        self.chapter_number = chapter_number
         self.death_and_tragic_events = death_and_tragic_events
         self.decisions = decisions
         self.conflicts = conflicts
@@ -93,8 +95,7 @@ class PlotPoint(db.Model):
         self.foreshadowing = foreshadowing
         self.setting_description = setting_description
         self.chapter_summary = chapter_summary
-        self.chapter_number = chapter_number
-        self.chapter_name = chapter_name
+        # No need to set `id` here; it will be handled by SQLAlchemy
 
 
 class Question(db.Model):
