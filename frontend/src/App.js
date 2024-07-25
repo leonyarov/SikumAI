@@ -5,7 +5,7 @@ import {
     ButtonBase, Chip, CircularProgress,
     Container,
     Divider,
-    FormControl,
+    FormControl, IconButton,
     InputLabel, List, ListItem,
     MenuItem,
     Pagination,
@@ -21,8 +21,9 @@ import LessonPlan from "./PrompResults/LessonPlan";
 import ChapterSummary from "./PrompResults/ChapterSummary";
 import {Document, Page} from "react-pdf";
 import {pdfjs} from 'react-pdf';
-import {Api, AutoStories, Book, LibraryBooks, Textsms} from "@mui/icons-material";
+import {Api, AutoStories, Book, History, LibraryBooks, Textsms} from "@mui/icons-material";
 import QnA from "./PrompResults/QnA";
+import HistoryModal from "./PrompResults/HistoryModal";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -45,6 +46,8 @@ function App() {
 
     const [loadingPrompt, setLoadingPrompt] = useState(false)
     const [chapterLoading, setChapterLoading] = useState(false)
+
+    document.title = "SikumAI"
 
     useEffect(() => {
         axios.get('http://127.0.0.1:5000/books').then(response => {
@@ -126,22 +129,22 @@ function App() {
                             {
                                 books.map(item => {
                                     return (
-                                        <Tooltip title={item.title} placement={'top'} sx={{fontSize:30}}>
+                                        <Tooltip title={item.title} placement={'top'} sx={{fontSize: 30}}>
 
-                                        <ButtonBase
-                                            onClick={() => {
-                                                setSelectedBook(item)
-                                            }}
-                                            sx={{
-                                                "&:hover": {
-                                                    transform: "scale(1.05)",
-                                                    boxShadow: "0 0 10px 0 rgba(0,0,0,0.3)"
-                                                }
-                                            }}>
-                                            <img width={100} src={'http://127.0.0.1:5000/static/' + item.image}
-                                                 alt={"cover"}
-                                                 style={{objectFit: "contain", borderRadius: 2}}/>
-                                        </ButtonBase>
+                                            <ButtonBase
+                                                onClick={() => {
+                                                    setSelectedBook(item)
+                                                }}
+                                                sx={{
+                                                    "&:hover": {
+                                                        transform: "scale(1.05)",
+                                                        boxShadow: "0 0 10px 0 rgba(0,0,0,0.3)"
+                                                    }
+                                                }}>
+                                                <img width={100} src={'http://127.0.0.1:5000/static/' + item.image}
+                                                     alt={"cover"}
+                                                     style={{objectFit: "contain", borderRadius: 2}}/>
+                                            </ButtonBase>
                                         </Tooltip>
                                     )
 
@@ -168,7 +171,8 @@ function App() {
                                 <List dense>
                                     {Object.entries(selectedBook ?? {}).map(([key, value]) => {
                                         return <ListItem>
-                                            <Chip label={key} size={'small'} sx={{textTransform: 'capitalize', fontWeight:'bold'}}/>
+                                            <Chip label={key} size={'small'}
+                                                  sx={{textTransform: 'capitalize', fontWeight: 'bold'}}/>
                                             <Typography display={'inline'} variant={'body2'} sx={{ml: 1}}>
                                                 {value}
                                             </Typography>
@@ -188,19 +192,20 @@ function App() {
                 <Box mb={2}>
                     <Paper>
                         <Box p={2}>
-                            <Stack  justifyContent={'center'} alignItems={'center'}>
+                            <Stack justifyContent={'center'} alignItems={'center'}>
 
-                            <Document file={`http://127.0.0.1:5000/static/books/${bookLink}`}
-                                      onLoadSuccess={onDocumentLoadSuccess}
-                                      error={<Alert severity={'info'}>Could not load PDF</Alert>}
-                                      loading={<Skeleton variant="rectangular" width={500} height={600} />}
-                            >
-                               <Paper elevation={3}>
-                                       <Page pageNumber={pdfPageIndex} renderAnnotationLayer={false} renderTextLayer={false}/>
-                               </Paper>
-                            </Document>
+                                <Document file={`http://127.0.0.1:5000/static/books/${bookLink}`}
+                                          onLoadSuccess={onDocumentLoadSuccess}
+                                          error={<Alert severity={'info'}>Could not load PDF</Alert>}
+                                          loading={<Skeleton variant="rectangular" width={500} height={600}/>}
+                                >
+                                    <Paper elevation={3}>
+                                        <Page pageNumber={pdfPageIndex} renderAnnotationLayer={false}
+                                              renderTextLayer={false}/>
+                                    </Paper>
+                                </Document>
 
-                             <Pagination sx={{my:2}} count={pdfPageCount} shape={'rounded'}
+                                <Pagination sx={{my: 2}} count={pdfPageCount} shape={'rounded'}
                                             onChange={(event, page) => setPdfPageIndex(page)}/>
                             </Stack>
                         </Box>
@@ -258,6 +263,7 @@ function App() {
                                     }
                                 </Button>
                             </Stack>
+                            <HistoryModal type={requiredContent} book={selectedBook}/>
                         </Stack>
 
                     </Paper>

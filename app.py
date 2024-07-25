@@ -4,7 +4,7 @@ from flask_cors import CORS, cross_origin
 
 from chatbot.chatbot import generate_plot_points, get_chapter_list, generate_chapter_bagrutQnA
 from chatbot.responses.lesson_plan import lesson_plan_prompt
-from database import db, Book
+from database import db, Book, PlotPoint, LessonPlan
 from forms import BookForm
 from functions.book import *
 
@@ -192,6 +192,24 @@ def get_book_file():
     book_id = data['book_id']
     book = Book.query.filter_by(id=book_id).first()
     return jsonify(book.file_name + '.pdf')
+
+@cross_origin
+@app.route('/history', methods=['POST'])
+def history():
+    data = request.get_json()
+    book_id = data['book_id']
+    content = data['content']
+
+    book = Book.query.filter_by(id=book_id).first().file_name
+    if content == 'cs':
+        result = PlotPoint.query.filter_by(book_name=book).all()
+        return jsonify(result)
+    elif content == 'lp':
+        result = LessonPlan.query.filter_by(book_name=book).all()
+        return jsonify(result)
+    else:
+        return jsonify([])
+
 
 if __name__ == '__main__':
     app.run(debug=True)
