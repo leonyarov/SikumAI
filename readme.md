@@ -6,9 +6,6 @@ SikumAI is a comprehensive AI-driven platform designed to facilitate various fun
 interactions, database management, and frontend operations. This project integrates multiple components to provide a
 seamless user experience.
 
-![readme1.png](./static/readme1.png)
-![readme2.png](./static/readme2.png)
-
 ### **Features:**
 
 	•	AI Chatbot for interactive communication
@@ -76,3 +73,4 @@ SikumAI/
 ├── dummyBooks.sql
 └── .idea/
 ```
+

@@ -84,28 +84,20 @@ def build_plot_points_prompt(book_name, chapter_name, page_content):
 
 
 def build_bagrut_questions_prompt(book_name, chapter_name, plot_point_data, bagrut_examples):
-    """
-    Builds a prompt for generating Bagrut-level questions based on a chapter summary and plot points.
-
-    Parameters:
-    book_name (str): The name of the book.
-    chapter_name (str): The name of the chapter.
-    plot_point_data (dict): The detailed plot points of the chapter.
-    bagrut_examples (list): List of Bagrut examples.
-
-    Returns:
-    str: The constructed prompt for the language model to generate Bagrut-level questions.
-    """
-    prompt = f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', "
-    prompt += "generate Bagrut-level educational questions. Use the following examples as a guide:\n"
+    prompt_lines = [
+        f"Based on the detailed summary of '{book_name}', Chapter '{chapter_name}', ",
+        "generate Bagrut-level educational questions. Use the following examples as a guide:\n"
+    ]
     for example in bagrut_examples:
-        prompt += f"- {example['question']} (Type: {example['type']})\n"
-    prompt += "\nFocus on character motivations, plot implications, thematic elements, "
-    prompt += "and any significant narrative techniques used in this chapter.\n"
-    prompt += "Additionally, use the following plot points to guide the question generation:\n"
+        prompt_lines.append(f"- {example['question']} (Type: {example['type']})\n")
+
+    prompt_lines.append("\nFocus on character motivations, plot implications, thematic elements, ")
+    prompt_lines.append("and any significant narrative techniques used in this chapter.\n")
+    prompt_lines.append("Additionally, use the following plot points to guide the question generation:\n")
     for key, value in plot_point_data.items():
-        prompt += f"- {key.replace('_', ' ').title()}: {value}\n"
-    return prompt
+        prompt_lines.append(f"- {key.replace('_', ' ').title()}: {value}\n")
+
+    return ''.join(prompt_lines)
 
 
 def build_bagrut_answers_prompt(book_name, chapter_name, detailed_summary, questions):
