@@ -134,63 +134,44 @@ def parse_plot_points_response(response):
 def parse_questions_and_answers(response_text):
     """
     Parses the AI's response to extract questions and answers separately.
-
-    Parameters:
-    response_text (str): The raw text response from the AI.
-
-    Returns:
-    list: A list of dictionaries, each containing a 'question' and an 'answer'.
+    The questions are identified by the bullet point (*) and are followed by their respective answers.
     """
+
     questions_and_answers = []
-    parts = re.split(r'(\*\*Question \d+:)', response_text)
 
-    # Skipping the first element which will be the intro part before the first question
-    for i in range(1, len(parts), 2):
-        question = parts[i].strip()
-        if i + 1 < len(parts):
-            answer = parts[i + 1].split("**Answer:**")[1].strip() if '**Answer:**' in parts[i + 1] else ''
-        else:
-            answer = ''
+    # Use regex to match questions and answers
+    pattern = re.compile(r'\*\s*(.*?)\*\*(.*?)\*\*\s*(.*?)\n', re.DOTALL)
 
-        questions_and_answers.append({
-            "question": question,
-            "answer": answer
-        })
+    matches = pattern.findall(response_text)
 
-    return questions_and_answers
+    # Debugging: Check what matches are found
+    print(f"Matches found: {matches}")
 
+    for match in matches:
+        question = match[1].strip()
+        answer = match[2].strip()
 
-def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
-    # Bagrut examples (leave as is)
-    bagrut_examples = [
-        {"question": "...", "type": "open-ended"},
-        # Add more examples
-    ]
+        if question and answer:
+            questions_and_answers.append({
+                "question": question,
+                "answer": answer
+            })
 
-    # Generate the Bagrut questions in one API call
-    bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data, bagrut_examples)
-    bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
-
-    # Generate all Bagrut answers in one API call
-    combined_questions = bagrut_questions_response
-    bagrut_answers_prompt = build_bagrut_answers_prompt(book_name, chapter_name, plot_points_data, combined_questions)
-    bagrut_answers_response = execute_prompt(bagrut_answers_prompt)
-
-    # Parse the questions and answers
-    questions_and_answers = parse_questions_and_answers(bagrut_answers_response)
+    # Debugging: Print parsed Q&A
+    print(f"Parsed Q&A: {questions_and_answers}")
 
     return questions_and_answers
 
 
 def format_bagrut_output(questions_and_answers):
     """
-    Formats the Bagrut Q&A output into a more readable format for front-end.
+    Formats the Bagrut Q&A output into a more readable format for front-end, including type connection.
 
     Parameters:
-    questions_and_answers (list): The list of dictionaries containing questions and answers.
+    questions_and_answers (list): The list of dictionaries containing questions, answers, and possibly types.
 
     Returns:
-    str: Formatted string output with Q and A.
+    str: Formatted string output with Q and A, and type labels.
     """
     formatted_output = []
 
@@ -201,11 +182,77 @@ def format_bagrut_output(questions_and_answers):
 
         # Only include if both question and answer exist
         if question and answer:
-            formatted_output.append(f"Q: {question}")
-            formatted_output.append(f"A: {answer}\n")
+            formatted_output.append(f"Q{idx}: {question}")
+            formatted_output.append(f"A{idx}: {answer}\n")
 
     # Join all parts into a single string for easier front-end rendering
     return "\n".join(formatted_output)
+
+
+def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
+    bagrut_examples = [
+        {
+            "question": "Choose a short story you studied that centers on the human need for understanding, warmth, love, or comfort. What need is expressed in the story you chose, and how does it affect the behavior of a central character in the story? Explain and illustrate your answer.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Explain and illustrate one way in which this human need is expressed in the story.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Choose a pivotal event that changes the course of a central character's life in a short story you studied, describe how the character copes with this event, and explain why you think it is pivotal in their life.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Explain and illustrate one way in which the character's coping with the event is expressed in the story.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Describe the physical journey of the protagonist in the story, and explain what mental journey they undergo as a result of their physical journey.",
+            "type": "open-ended"
+        },
+        {
+            "question": "Choose a character from the reading book you studied that evoked empathy in you and a character that evoked rejection. Describe each of these characters and explain what about them evoked these feelings in you.",
+            "type": "open-ended"
+        },
+        {
+            "question": "What insights about human nature and/or society arise from the reading book you studied? Explain your answer and base it on the relationships between the characters and the ending of the reading book.",
+            "type": "open-ended"
+        }
+    ]
+
+    # Generate the Bagrut questions in one API call
+    try:
+        bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data,
+                                                                bagrut_examples)
+        bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
+
+        # Debugging step: Check the raw response from the API
+        print(f"Bagrut Questions API Response: {bagrut_questions_response}")
+
+        # Check if the response is valid before proceeding
+        if not bagrut_questions_response:
+            return None, {"error": "Failed to generate Bagrut questions."}
+
+        # Generate all Bagrut answers in one API call
+        combined_questions = bagrut_questions_response
+        bagrut_answers_prompt = build_bagrut_answers_prompt(book_name, chapter_name, plot_points_data,
+                                                            combined_questions)
+        bagrut_answers_response = execute_prompt(bagrut_answers_prompt)
+
+        # Debugging step: Check the raw response from the API
+        print(f"Bagrut Answers API Response: {bagrut_answers_response}")
+
+        # Check if the response is valid before proceeding
+        if not bagrut_answers_response:
+            return None, {"error": "Failed to generate Bagrut answers."}
+
+        # Parse the questions and answers
+        questions_and_answers = parse_questions_and_answers(bagrut_answers_response)
+        return questions_and_answers
+    except Exception as e:
+        print(f"Error during Bagrut Q&A generation: {e}")
+        return None, {"error": str(e)}
 
 
 # Generate and format the final output
@@ -230,7 +277,12 @@ def generate_chapter_bagrutQnA(book_name, chapter):
     # Generate Bagrut-style questions and answers using plot points
     questions_and_answers = generate_bagrut_qa(book_name, chapter, plot_points_data)
 
+    # Debugging step: Print the generated questions and answers
+    print(f"Questions and Answers Generated: {questions_and_answers}")
+
+    if not questions_and_answers:
+        return "Error: No Q&A generated."
+
     # Format the output for Q&A
     formatted_results = format_bagrut_output(questions_and_answers)
-
     return formatted_results
