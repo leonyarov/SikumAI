@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 
 import requests
 from dotenv import load_dotenv
@@ -131,25 +130,24 @@ def parse_plot_points_response(response):
     return plot_points_data
 
 
+import re
+
+
 def parse_questions_and_answers(response_text):
     """
     Parses the AI's response to extract questions and answers separately.
     The questions are identified by the bullet point (*) and are followed by their respective answers.
     """
-
     questions_and_answers = []
 
-    # Use regex to match questions and answers
-    pattern = re.compile(r'\*\s*(.*?)\*\*(.*?)\*\*\s*(.*?)\n', re.DOTALL)
-
+    # Refine the regex to match both questions and answers more accurately
+    pattern = re.compile(r'\*\s*(.+?)\*\*(.*?)\n', re.DOTALL)
     matches = pattern.findall(response_text)
 
-    # Debugging: Check what matches are found
-    print(f"Matches found: {matches}")
-
+    # Iterate through the matches and organize them into Q&A pairs
     for match in matches:
-        question = match[1].strip()
-        answer = match[2].strip()
+        question = match[0].strip()
+        answer = match[1].strip()
 
         if question and answer:
             questions_and_answers.append({
@@ -157,30 +155,21 @@ def parse_questions_and_answers(response_text):
                 "answer": answer
             })
 
-    # Debugging: Print parsed Q&A
-    print(f"Parsed Q&A: {questions_and_answers}")
-
     return questions_and_answers
 
 
 def format_bagrut_output(questions_and_answers):
     """
-    Formats the Bagrut Q&A output into a more readable format for front-end, including type connection.
-
-    Parameters:
-    questions_and_answers (list): The list of dictionaries containing questions, answers, and possibly types.
-
-    Returns:
-    str: Formatted string output with Q and A, and type labels.
+    Formats the Bagrut Q&A output into a more readable format for front-end, ensuring each question is followed by its respective answer.
     """
     formatted_output = []
 
-    # Loop through each QA pair in the results
+    # Loop through each QA pair and format it properly
     for idx, qa_pair in enumerate(questions_and_answers, 1):
         question = qa_pair.get('question', '').strip()
         answer = qa_pair.get('answer', '').strip()
 
-        # Only include if both question and answer exist
+        # Ensure both question and answer exist before formatting
         if question and answer:
             formatted_output.append(f"Q{idx}: {question}")
             formatted_output.append(f"A{idx}: {answer}\n")
