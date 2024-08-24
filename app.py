@@ -9,6 +9,7 @@ from chatbot.responses.lesson_plan import lesson_plan_prompt
 from database import db, Book, PlotPoint, LessonPlan
 from forms import BookForm
 from functions.book import *
+import json
 
 app = Flask(__name__, static_url_path="/static")
 cors = CORS(app)
@@ -199,6 +200,27 @@ def get_chapters():
     except:
         return jsonify([])
 
+
+@cross_origin
+@app.route('/translate', methods=['POST'])
+def translate():
+    from translate import Translator
+
+    data = request.get_json()
+    # print(data)
+    text = data['text']
+    translator = Translator(to_lang='he')
+    to_send = dict()
+    for k, v in text.items():
+        if len(v) >= 499:
+            bins = [v[i:i + 499] for i in range(0, len(v), 499)]
+            t = "".join([translator.translate(b) for b in bins])
+            to_send[k] = t
+            continue
+        to_send[k] = translator.translate(v)
+
+
+    return jsonify({'result': to_send})
 
 @cross_origin
 @app.route('/generate_lesson_plan', methods=['POST'])

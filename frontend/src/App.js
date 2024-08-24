@@ -21,10 +21,11 @@ import LessonPlan from "./PrompResults/LessonPlan";
 import ChapterSummary from "./PrompResults/ChapterSummary";
 import {Document, Page} from "react-pdf";
 import {pdfjs} from 'react-pdf';
-import {Api, AutoStories, Book, History, LibraryBooks, Textsms} from "@mui/icons-material";
+import {Api, AutoStories, Book, History, LibraryBooks, Textsms, Translate as TranslateIcon} from "@mui/icons-material";
 import QnA from "./PrompResults/QnA";
 import HistoryModal from "./PrompResults/HistoryModal";
 import NewBook from "./NewBook";
+
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -44,22 +45,32 @@ function App() {
     const [chapter, setChapter] = useState("")
     const [requiredContent, setRequiredContent] = useState('qa')
     const [promptResponse, setPromptResponse] = useState("")
-
+    const [rtlEnabled, setRtlEnabled] = useState(false)
     const [loadingPrompt, setLoadingPrompt] = useState(false)
     const [chapterLoading, setChapterLoading] = useState(false)
 
     const [generateButtonText, setGenerateButtonText] = useState("Generate")
 
+    const translateText = () => {
+        axios.post('http://127.0.0.1:5000/translate', {text: promptResponse.result}).then(response => {
+            setPromptResponse(response.data)
+            setRtlEnabled(true)
+        }).catch(error => {
+            console.log("error")
+        })
+
+    }
+
     useEffect(() => {
         if (!loadingPrompt) return
 
-             const names = ["Generating", "Collecting Chapters", "Analyzing","Saving to DB", "Processing", "Prompting API", "Saving Results" ]
-         names.forEach((name) => {
-             //random time
-                setTimeout(() => {
+        const names = ["Generating", "Collecting Chapters", "Analyzing", "Saving to DB", "Processing", "Prompting API", "Saving Results"]
+        names.forEach((name) => {
+            //random time
+            setTimeout(() => {
                 setGenerateButtonText(name)
-                }, Math.floor(Math.random() * (10000)) + 3000)
-            })
+            }, Math.floor(Math.random() * (10000)) + 3000)
+        })
 
     }, [loadingPrompt]);
 
@@ -109,19 +120,17 @@ function App() {
         if (requiredContent === 'cs') url = 'generate_summary'
 
 
-
         axios.post(`http://127.0.0.1:5000/${url}`, {
             'book_id': selectedBook.id,
             'chapter_name': chapter
         }).then(response => {
             setPromptResponse(response.data)
-
+            setRtlEnabled(false)
         }).catch(error => {
             console.log("error")
         }).finally(() => {
             setLoadingPrompt(false)
         })
-
 
 
     }
@@ -171,7 +180,7 @@ function App() {
                                 })
                             }
 
-                           <NewBook/>
+                            <NewBook/>
                         </Box>
                     </Paper>
                 </Box>
@@ -278,21 +287,28 @@ function App() {
                                     Powered By &nbsp;
                                     <img src={'gemini.png'} width={100}/>
                                 </Typography>
-                                <Button disabled={loadingPrompt} variant={'contained'} sx={{height: 80}} onClick={() => handleGenerate()}  >
+                                <Button disabled={loadingPrompt} variant={'contained'} sx={{height: 80}}
+                                        onClick={() => handleGenerate()}>
                                     {loadingPrompt ?
-                                        <> {generateButtonText} <CircularProgress color={'info'}/></>  :
+                                        <> {generateButtonText} <CircularProgress color={'info'}/></> :
                                         "Generate"
                                     }
                                 </Button>
                             </Stack>
-                            <HistoryModal type={requiredContent} book={selectedBook}/>
+                            <Box>
+
+                                <HistoryModal type={requiredContent} book={selectedBook}/>
+                                <IconButton>
+                                    <TranslateIcon onClick={translateText}/>
+                                </IconButton>
+                            </Box>
                         </Stack>
 
                     </Paper>
                 </Box>
                 <Box pb={5}>
                     <Paper>
-                        <Box minHeight={100} p={2}>
+                        <Box minHeight={100} p={2} sx={{direction: rtlEnabled ? "rtl" : 'ltr'}}>
                             <Typography variant={'body2'} sx={{overflowX: 'scroll'}}>
                                 {requiredContent === 'lp' && promptResponse.result &&
                                     <LessonPlan lesson={promptResponse.result}/>
