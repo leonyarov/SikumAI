@@ -4,8 +4,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from chatbot.prompt_generating import build_chapter_list_prompt, build_plot_points_prompt, build_bagrut_answers_prompt, \
-    build_bagrut_questions_prompt
+from chatbot.prompt_generating import build_chapter_list_prompt, build_plot_points_prompt
 from database import PlotPoint
 from functions.book import find_chapter
 from functions.formatting import chapters_to_list
@@ -13,6 +12,37 @@ from functions.prompt_caching import get_prompt, save_prompt, save
 
 # Load environment variables from ..env file
 load_dotenv()
+bagrut_qa_list = []  # Global list to store the generated Q&A
+bagrut_examples = [
+    {
+        "question": "Choose a short story you studied that centers on the human need for understanding, warmth, love, or comfort. What need is expressed in the story you chose, and how does it affect the behavior of a central character in the story? Explain and illustrate your answer.",
+        "type": "open-ended"
+    },
+    {
+        "question": "Explain and illustrate one way in which this human need is expressed in the story.",
+        "type": "open-ended"
+    },
+    {
+        "question": "Choose a pivotal event that changes the course of a central character's life in a short story you studied, describe how the character copes with this event, and explain why you think it is pivotal in their life.",
+        "type": "open-ended"
+    },
+    {
+        "question": "Explain and illustrate one way in which the character's coping with the event is expressed in the story.",
+        "type": "open-ended"
+    },
+    {
+        "question": "Describe the physical journey of the protagonist in the story, and explain what mental journey they undergo as a result of their physical journey.",
+        "type": "open-ended"
+    },
+    {
+        "question": "Choose a character from the reading book you studied that evoked empathy in you and a character that evoked rejection. Describe each of these characters and explain what about them evoked these feelings in you.",
+        "type": "open-ended"
+    },
+    {
+        "question": "What insights about human nature and/or society arise from the reading book you studied? Explain your answer and base it on the relationships between the characters and the ending of the reading book.",
+        "type": "open-ended"
+    }
+]
 
 
 def get_chapter_list(book_name):
@@ -179,84 +209,38 @@ def format_bagrut_output(questions_and_answers):
 
 
 def generate_bagrut_qa(book_name, chapter_name, plot_points_data):
-    bagrut_examples = [
-        {
-            "question": "Choose a short story you studied that centers on the human need for understanding, warmth, love, or comfort. What need is expressed in the story you chose, and how does it affect the behavior of a central character in the story? Explain and illustrate your answer.",
-            "type": "open-ended"
-        },
-        {
-            "question": "Explain and illustrate one way in which this human need is expressed in the story.",
-            "type": "open-ended"
-        },
-        {
-            "question": "Choose a pivotal event that changes the course of a central character's life in a short story you studied, describe how the character copes with this event, and explain why you think it is pivotal in their life.",
-            "type": "open-ended"
-        },
-        {
-            "question": "Explain and illustrate one way in which the character's coping with the event is expressed in the story.",
-            "type": "open-ended"
-        },
-        {
-            "question": "Describe the physical journey of the protagonist in the story, and explain what mental journey they undergo as a result of their physical journey.",
-            "type": "open-ended"
-        },
-        {
-            "question": "Choose a character from the reading book you studied that evoked empathy in you and a character that evoked rejection. Describe each of these characters and explain what about them evoked these feelings in you.",
-            "type": "open-ended"
-        },
-        {
-            "question": "What insights about human nature and/or society arise from the reading book you studied? Explain your answer and base it on the relationships between the characters and the ending of the reading book.",
-            "type": "open-ended"
-        }
-    ]
+    # Loop through each question and generate Q&A one by one
+    for example in bagrut_examples:
+        question_text = example['question']
+        generate_single_bagrut_qa(book_name, chapter_name, question_text)
 
-    # Generate the Bagrut questions in one API call
-    try:
-        bagrut_questions_prompt = build_bagrut_questions_prompt(book_name, chapter_name, plot_points_data,
-                                                                bagrut_examples)
-        bagrut_questions_response = execute_prompt(bagrut_questions_prompt)
+    # After generating all Q&A pairs, format them for display
+    return display_all_bagrut_qa()
 
-        # Debugging step: Check the raw response from the API
-        print(f"Bagrut Questions API Response: {bagrut_questions_response}")
 
-        # Check if the response is valid before proceeding
-        if not bagrut_questions_response:
-            return None, {"error": "Failed to generate Bagrut questions."}
+def display_all_bagrut_qa():
+    """
+    Displays all saved Bagrut-style questions and answers.
+    """
+    global bagrut_qa_list
+    formatted_output = []
 
-        # Generate all Bagrut answers in one API call
-        combined_questions = bagrut_questions_response
-        bagrut_answers_prompt = build_bagrut_answers_prompt(book_name, chapter_name, plot_points_data,
-                                                            combined_questions)
-        bagrut_answers_response = execute_prompt(bagrut_answers_prompt)
+    for idx, qa_pair in enumerate(bagrut_qa_list, 1):
+        question = qa_pair['question'].strip()
+        answer = qa_pair['answer'].strip()
 
-        # Debugging step: Check the raw response from the API
-        print(f"Bagrut Answers API Response: {bagrut_answers_response}")
+        formatted_output.append(f"Q{idx}: {question}")
+        formatted_output.append(f"A{idx}: {answer}\n")
 
-        # Check if the response is valid before proceeding
-        if not bagrut_answers_response:
-            return None, {"error": "Failed to generate Bagrut answers."}
-
-        # Parse the questions and answers
-        questions_and_answers = parse_questions_and_answers(bagrut_answers_response)
-        return questions_and_answers
-    except Exception as e:
-        print(f"Error during Bagrut Q&A generation: {e}")
-        return None, {"error": str(e)}
+    # Return all Q&A in a readable format
+    return "\n".join(formatted_output)
 
 
 # Generate and format the final output
 def generate_chapter_bagrutQnA(book_name, chapter):
     """
     Generates summaries, Plot Points & Bagrut Style Questions and Answers.
-
-    Parameters:
-    book_name (str): The name of the book.
-    chapter (str): The chapter title.
-
-    Returns:
-    str: A formatted string containing all the plot points and Q&A.
     """
-
     # Generate plot points
     plot_point, plot_points_data = generate_plot_points(book_name, chapter)
 
@@ -264,14 +248,39 @@ def generate_chapter_bagrutQnA(book_name, chapter):
         return f"Error generating plot points for {chapter}: {plot_points_data.get('error', 'Unknown error')}"
 
     # Generate Bagrut-style questions and answers using plot points
-    questions_and_answers = generate_bagrut_qa(book_name, chapter, plot_points_data)
+    final_output = generate_bagrut_qa(book_name, chapter, plot_points_data)
 
-    # Debugging step: Print the generated questions and answers
-    print(f"Questions and Answers Generated: {questions_and_answers}")
+    return final_output
 
-    if not questions_and_answers:
-        return "Error: No Q&A generated."
 
-    # Format the output for Q&A
-    formatted_results = format_bagrut_output(questions_and_answers)
-    return formatted_results
+def generate_single_bagrut_qa(book_name, chapter_name, question):
+    """
+    Generates a single Bagrut-style question and its answer based on plot points.
+    """
+    try:
+        # Generate the question prompt
+        bagrut_question_prompt = f"Generate a question for the following: {question}"
+        bagrut_question_response = execute_prompt(bagrut_question_prompt)
+
+        # Generate the answer prompt
+        bagrut_answer_prompt = f"Generate an answer for the following question: {bagrut_question_response}"
+        bagrut_answer_response = execute_prompt(bagrut_answer_prompt)
+
+        # Save the result in memory
+        save_bagrut_qa(bagrut_question_response, bagrut_answer_response)
+
+        return {
+            "question": bagrut_question_response,
+            "answer": bagrut_answer_response
+        }
+    except Exception as e:
+        print(f"Error generating Bagrut Q&A: {e}")
+        return {"error": str(e)}
+
+
+def save_bagrut_qa(question, answer):
+    """
+    Saves each question and answer in the global list.
+    """
+    global bagrut_qa_list
+    bagrut_qa_list.append({"question": question, "answer": answer})
