@@ -1,3 +1,5 @@
+import os.path
+
 from flask import Flask, request, url_for, redirect, get_flashed_messages, session, jsonify, flash
 from flask import render_template
 from flask_cors import CORS, cross_origin
@@ -121,6 +123,42 @@ def set_book():
     return redirect("/")
 
 
+@app.route('/upload_book', methods=['POST'])
+def upload_book():
+    if 'book' not in request.files or 'cover' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    book = request.files['book']
+    cover = request.files['cover']
+
+    cover_folder = os.path.join(app.root_path, 'static')
+    book_folder = os.path.join(app.root_path, 'static', 'books')
+
+    cover_path = os.path.join(cover_folder, cover.filename)
+    book_path = os.path.join(book_folder, book.filename)
+
+    book.save(book_path)
+    cover.save(cover_path)
+
+    try:
+        new_book = Book(
+            author=request.form['author'],
+            title=request.form['title'],
+            pages=100,
+            short_text=request.form['short_text'],
+            msdn=request.form['msdn'],
+            image=cover.filename,
+            file_name=os.path.splitext(book.filename)[0]
+        )
+        db.session.add(new_book)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify("ok")
+
+
 @cross_origin
 @app.route('/generate_summary', methods=['POST'])
 def plot_points():
@@ -133,6 +171,7 @@ def plot_points():
     result = generate_plot_points(book.file_name, chapter_name)
 
     return jsonify({'result': result[0]})
+
 
 @cross_origin
 @app.route('/generate_questions', methods=['POST'])
@@ -177,13 +216,13 @@ def generate_lesson_plan():
     return jsonify({'result': result})
 
 
-
 @cross_origin
 @app.route('/list_books', methods=['GET'])
 def list_books():
     books = Book.query.all()
     books_list = [{"id": book.id, "title": book.title} for book in books]
     return jsonify(books_list)
+
 
 @cross_origin
 @app.route('/get_book', methods=['POST'])
@@ -192,6 +231,7 @@ def get_book_file():
     book_id = data['book_id']
     book = Book.query.filter_by(id=book_id).first()
     return jsonify(book.file_name + '.pdf')
+
 
 @cross_origin
 @app.route('/history', methods=['POST'])
@@ -213,4 +253,3 @@ def history():
 
 if __name__ == '__main__':
     app.run(debug=True)
-

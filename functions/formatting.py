@@ -1,4 +1,6 @@
 def chapters_to_list(chapters):
+    if chapters.count("\n") < 3:
+        return chapters.split(",")
     return chapters.split("\n")
 
 def applyXML(text):

@@ -30,17 +30,28 @@ def get_possible_chapter_list(book_name):
 
 
 def find_chapter(book_name, chapter_name, chapter_list: list):
+
+    print("Searching for", chapter_name, "in", book_name, "with chapters", chapter_list)
     if get_chapter(book_name, chapter_name) is not None:
         return get_chapter(book_name, chapter_name).chapter_text
-
+    temp_chapters = chapter_list.copy()
     pdf_path = os.path.join("static", "books", f"{book_name}.pdf")
     chapter_text = ""
     chapters = dict.fromkeys(chapter_list, 0)
     with (pdfplumber.open(pdf_path) as pdf):
         for i, page in enumerate(pdf.pages):
-            for chapter in chapter_list:
-                if chapter in page.extract_text():
+            temp_text = page.extract_text(y_tolerance=5).lower()
+            if len(temp_chapters) == 0:
+                break
+
+            if i > 10 and len(chapter_list) - len(temp_chapters) > 2:
+                temp_chapters = chapter_list.copy() # fake chapters
+
+            for chapter in temp_chapters:
+                if chapter.lower() in temp_text:
+                    print(f"Found {chapter} at {i}")
                     chapters[chapter] = i
+                    temp_chapters.pop(temp_chapters.index(chapter))
                     break
                 if i == len(pdf.pages) - 1:
                     chapters[chapter] = -1
@@ -49,6 +60,7 @@ def find_chapter(book_name, chapter_name, chapter_list: list):
             print(f"chapter {k} is at {v}")
 
         if chapters[chapter_name] == -1 or chapters[chapter_name] == 0:
+            print("Chapter not found")
             return None  # chapter not found
 
         index = chapter_list.index(chapter_name)

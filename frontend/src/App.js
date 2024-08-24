@@ -24,6 +24,7 @@ import {pdfjs} from 'react-pdf';
 import {Api, AutoStories, Book, History, LibraryBooks, Textsms} from "@mui/icons-material";
 import QnA from "./PrompResults/QnA";
 import HistoryModal from "./PrompResults/HistoryModal";
+import NewBook from "./NewBook";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -46,6 +47,21 @@ function App() {
 
     const [loadingPrompt, setLoadingPrompt] = useState(false)
     const [chapterLoading, setChapterLoading] = useState(false)
+
+    const [generateButtonText, setGenerateButtonText] = useState("Generate")
+
+    useEffect(() => {
+        if (!loadingPrompt) return
+
+             const names = ["Generating", "Collecting Chapters", "Analyzing","Saving to DB", "Processing", "Prompting API", "Saving Results" ]
+         names.forEach((name) => {
+             //random time
+                setTimeout(() => {
+                setGenerateButtonText(name)
+                }, Math.floor(Math.random() * (10000)) + 3000)
+            })
+
+    }, [loadingPrompt]);
 
     document.title = "SikumAI"
 
@@ -93,6 +109,7 @@ function App() {
         if (requiredContent === 'cs') url = 'generate_summary'
 
 
+
         axios.post(`http://127.0.0.1:5000/${url}`, {
             'book_id': selectedBook.id,
             'chapter_name': chapter
@@ -104,6 +121,9 @@ function App() {
         }).finally(() => {
             setLoadingPrompt(false)
         })
+
+
+
     }
 
     function HandleGetChapter(number) {
@@ -150,6 +170,8 @@ function App() {
 
                                 })
                             }
+
+                           <NewBook/>
                         </Box>
                     </Paper>
                 </Box>
@@ -256,9 +278,9 @@ function App() {
                                     Powered By &nbsp;
                                     <img src={'gemini.png'} width={100}/>
                                 </Typography>
-                                <Button variant={'contained'} sx={{height: 80}} onClick={() => handleGenerate()}>
+                                <Button disabled={loadingPrompt} variant={'contained'} sx={{height: 80}} onClick={() => handleGenerate()}  >
                                     {loadingPrompt ?
-                                        <CircularProgress color={'info'}/> :
+                                        <> {generateButtonText} <CircularProgress color={'info'}/></>  :
                                         "Generate"
                                     }
                                 </Button>
